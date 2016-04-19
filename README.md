@@ -23,11 +23,10 @@ e.g. nohup sh target/appassembler/bin/TRECScenarioSearcher -index 160418 -mailLi
 
 ```
 
-Index diagnostic page, via SOCKS proxy (ssh to remote server and build a tunnel)
+There is also an index diagnostic page which helps to check the "health condition" of our index. You can visit the page via SOCKS proxy (ssh to remote server and build a tunnel)
 
-```
-http://www.startupcto.com/server-tech/macosx/setting-up-a-socks-proxy-in-mac-osx
-```
+[See this tutorial] (http://www.startupcto.com/server-tech/macosx/setting-up-a-socks-proxy-in-mac-osx)
+
 
 For Mac user, Firefox is required
 
