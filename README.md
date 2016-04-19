@@ -23,6 +23,21 @@ e.g. nohup sh target/appassembler/bin/TRECScenarioSearcher -index 160418 -mailLi
 
 ```
 
+Index diagnostic page, via SOCKS proxy (ssh to remote server and build a tunnel)
+
+```
+http://www.startupcto.com/server-tech/macosx/setting-up-a-socks-proxy-in-mac-osx
+```
+
+For Mac user, Firefox is required
+
+```
+sh target/appassembler/bin/TweetSearcher -index 20160419 -port 8080
+```
+After the above configuration, you are able to visit the diagnostic page by address localhost:8080
+
+
+
 Anserini
 ========
 
