@@ -4,6 +4,8 @@ import io.anserini.document.twitter.Status;
 import io.anserini.nrts.TweetSearcher;
 
 import java.io.IOException;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,9 +54,19 @@ public class TRECIndexerRunnable implements Runnable {
 	};
 
 	public static int tweetCount;
+	public boolean isRunning = true;
+	public String startTime = "";
+	public String endTime="";
+	public TwitterStream twitterStream;
+	
+	public void terminate() {
+		twitterStream.cleanUp();
+		endTime=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString();
+	}
 
 	@Override
 	public void run() {
+		startTime = Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString();
 		tweetCount = 0;
 
 		final FieldType textOptions = new FieldType();
@@ -62,7 +74,7 @@ public class TRECIndexerRunnable implements Runnable {
 		textOptions.setStored(true);
 		textOptions.setTokenized(true);
 
-		TwitterStream twitterStream = new TwitterStreamFactory().getInstance();
+		twitterStream = new TwitterStreamFactory().getInstance();
 		RawStreamListener rawListener = new RawStreamListener() {
 
 			@Override
@@ -187,7 +199,6 @@ public class TRECIndexerRunnable implements Runnable {
 
 		twitterStream.addListener(rawListener);
 		twitterStream.sample();
-		while (true) {
-		}
+		
 	}
 }

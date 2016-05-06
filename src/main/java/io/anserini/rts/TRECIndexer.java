@@ -28,7 +28,6 @@ import org.eclipse.jetty.server.handler.HandlerList;
 
 import io.anserini.index.twitter.TweetAnalyzer;
 
-
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.glassfish.jersey.servlet.ServletContainer;
 
@@ -38,23 +37,28 @@ public class TRECIndexer {
 	private static final String INDEX_OPTION = "index";
 
 	private static final String PORT_OPTION = "port";
-	
+
 	static String interestProfilePath;
 	static String[] mailList;
 
 	public static Directory index;
+	public static String indexName;
 	public static IndexWriter indexWriter;
+	public static TRECIndexerRunnable its;
+	public static Server server;
+
 	public static final Analyzer ANALYZER = new WhitespaceAnalyzer();
+	public static boolean isServerTerminated = false;
 
 	public TRECIndexer(String dir) throws IOException {
-		
+		indexName = dir;
+
 		FileUtils.deleteDirectory(new File(dir));
 
 		index = new MMapDirectory(Paths.get(dir));
 		IndexWriterConfig config = new IndexWriterConfig(ANALYZER);
 		config.setSimilarity(new TRECSimilarity());
 		indexWriter = new IndexWriter(index, config);
-
 
 	}
 
@@ -65,10 +69,10 @@ public class TRECIndexer {
 		indexWriter.close();
 	}
 
-	public static void main(String[] args) throws IOException, InterruptedException, ParseException {
+	public static void main(String[] args) throws Exception {
 		Options options = new Options();
 		options.addOption(INDEX_OPTION, true, "index path");
-		
+
 		CommandLine cmdline = null;
 		CommandLineParser parser = new GnuParser();
 		try {
@@ -84,15 +88,54 @@ public class TRECIndexer {
 			System.exit(-1);
 		}
 
-
 		TRECIndexer nrtsearch = new TRECIndexer(cmdline.getOptionValue(INDEX_OPTION));
 
 		LOG.info("Starting TRECStreamIndexer");
 
-		TRECIndexerRunnable its = new TRECIndexerRunnable(indexWriter);
+		its = new TRECIndexerRunnable(indexWriter);
 		Thread itsThread = new Thread(its);
 		itsThread.start();
+
+		LOG.info(TRECIndexer.its.startTime);
+		LOG.info("Starting HTTP server on port 8080");
+
+		HandlerList mainHandler = new HandlerList();
+
+		server = new Server(8080);
+
+		ResourceHandler resource_handler = new ResourceHandler();
+
+		resource_handler.setResourceBase("src/main/java/io/anserini/rts/public");
+		resource_handler.setWelcomeFiles(new String[] { "index.html" });
+
+		ServletContextHandler handler = new ServletContextHandler(ServletContextHandler.SESSIONS);
+		handler.setContextPath("/");
+		ServletHolder jerseyServlet = new ServletHolder(ServletContainer.class);
+		jerseyServlet.setInitParameter("jersey.config.server.provider.classnames",
+				TRECIndexerServerAPI.class.getCanonicalName());
+		handler.addServlet(jerseyServlet, "/*");
+
+		mainHandler.addHandler(resource_handler);
+		mainHandler.addHandler(handler);
+		server.setHandler(mainHandler);
+		try {
+			server.start();
+			LOG.info("Accepting connections on port 8080");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 		itsThread.join();
+
+		while (!itsThread.isAlive() && !isServerTerminated) {
+			Thread.sleep(3000);
+			System.out.println(its.isRunning + "In Main, isServerTerminated=false");
+		}
+		System.out.println("In Main, isServerTerminated=true");
+		server.stop();
+		server.join();
+
 		nrtsearch.close();
 	}
 }

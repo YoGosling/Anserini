@@ -35,6 +35,8 @@ sh target/appassembler/bin/TweetSearcher -index 20160419 -port 8080
 ```
 After the above configuration, you are able to visit the diagnostic page by address localhost:8080
 
+Access index diagnostic page via [http://localhost:8080](http://localhost:8080), where you will get a list of statistics, e.g. # of tweets indexed, startTime, etc. 
+
 
 
 Anserini
