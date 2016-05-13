@@ -74,11 +74,13 @@ public class TRECScenarioBRunnable extends TimerTask {
 	String startTimestamp;
 	TimeZone timeZone;
 	DateFormat format;
+	boolean useBroker = false;
+	String api;
 
 	private static final Logger LOG = TRECIndexer.LOG;
 	// LogManager.getLogger(TRECSearcher.class);
 
-//	static TweetTopic[] topics;
+	// static TweetTopic[] topics;
 	IndexWriter indexWriter = TRECIndexer.indexWriter;
 	private IndexReader reader; // should it be static or one copy per
 								// thread? to be answered
@@ -150,15 +152,38 @@ public class TRECScenarioBRunnable extends TimerTask {
 
 				this.expansion.add(thisExpansionCluster.substring(0, thisExpansionCluster.length() - 4));
 			}
-			LOG.info("The expansion term array parses as " + expansion.toString());
+//			LOG.info("The expansion term array parses as " + expansion.toString());
 		}
 	}
 
+	public TRECScenarioBRunnable(String index, String interestProfilePath, String api)
+			throws FileNotFoundException, IOException {
+		useBroker = true;
+		this.indexPath = index;
+		this.api = api;
 
-	public TRECScenarioBRunnable(String index, String interestProfilePath, String mailList,
-			String startTimestamp) throws FileNotFoundException, IOException {
+		String JSONObjectString = "";
+		try (BufferedReader br = new BufferedReader(new FileReader(interestProfilePath))) {
+			String line = br.readLine();
 
-		LOG.info("Setting up TweetPusher Thread");
+			while (line != null) {
+				JSONObjectString = JSONObjectString + line;
+				line = br.readLine();
+			}
+		}
+		JsonObject interestProfileObject = (JsonObject) JSON_PARSER.parse(JSONObjectString);
+		thisInterestProfile = new InterestProfile(interestProfileObject.get("index").toString(),
+				interestProfileObject.get("query").toString(), interestProfileObject.getAsJsonArray("expansion"));
+//		LOG.info("Set up TweetPusher Thread");
+		timeZone = TimeZone.getTimeZone("UTC");
+		format = new SimpleDateFormat("E dd MMM yyyy HH:mm:ss zz");
+		format.setTimeZone(TimeZone.getTimeZone("UTC"));
+	}
+
+	public TRECScenarioBRunnable(String index, String interestProfilePath, String mailList, String startTimestamp)
+			throws FileNotFoundException, IOException {
+
+//		LOG.info("Setting up TweetPusher Thread");
 		this.indexPath = index;
 		this.startTimestamp = startTimestamp;
 
@@ -215,6 +240,29 @@ public class TRECScenarioBRunnable extends TimerTask {
 
 		}
 		return false;
+	}
+
+	/* POST /tweets/:topid/:clientid */
+	public void postTweetListScenarioB(ArrayList<String> tweetList, String api) {
+		WebTarget webTarget = client.target(api);
+
+		// The body of the request should contain a JSON object with a field
+		// denoted 'tweets' with a JSON array of tweetid strings, e.g.,
+		// '{"tweets":["123","456"]}'.
+		String tweetsJSONString = "{\"tweets\":[";
+
+		for (String tweetid : tweetList) {
+			tweetsJSONString = tweetsJSONString + "\"" + tweetid + "\",";
+		}
+		tweetsJSONString = tweetsJSONString.substring(0, tweetsJSONString.length() - 1) + "]}";
+		Response postResponse = webTarget.request(MediaType.APPLICATION_JSON)
+				.post(Entity.entity(tweetsJSONString, MediaType.APPLICATION_JSON));
+		LOG.info("Registrer status " + postResponse.getStatus());
+
+		if (postResponse.getStatus() == 204) {
+			LOG.info("Scenario B, " + api + " Returns a 204 status code on push notification succes");
+		}
+
 	}
 
 	@SuppressWarnings("deprecation")
@@ -347,10 +395,14 @@ public class TRECScenarioBRunnable extends TimerTask {
 
 						}
 					}
-					if (tweetList.size() > 0)
+					if (tweetList.size() > 0 && !useBroker)
 						SendAttachmentInEmail.sendDigestBlockquote(mailList, tweetList, userNameList,
 								userScreenNameList, userImageProfileURLList, textList, epochList, startTimestamp,
-								"ScenarioB " + thisInterestProfile.topicIndex + ":" + thisInterestProfile.query+" #"+(pushedTweets.size()-tweetList.size()+1)+"-"+pushedTweets.size());
+								"ScenarioB " + thisInterestProfile.topicIndex + ":" + thisInterestProfile.query + " #"
+										+ (pushedTweets.size() - tweetList.size() + 1) + "-" + pushedTweets.size());
+					else if (tweetList.size() > 0 && useBroker) {
+						postTweetListScenarioB(tweetList, api);
+					}
 
 				}
 			} else {

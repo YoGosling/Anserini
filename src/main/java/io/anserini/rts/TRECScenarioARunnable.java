@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
@@ -56,12 +57,16 @@ import org.apache.lucene.store.NoLockFactory;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 //import com.ibm.icu.util.TimeZone;
 
 import io.anserini.index.IndexTweets.StatusField;
+import io.anserini.rts.TRECScenarioARunnable.InterestProfile;
+import io.anserini.rts.TRECSearcher.RegisterException;
 //import io.anserini.nrts.livedemo.TweetClientAPI;
 //import io.anserini.nrts.livedemo.TweetClientAPI.TweetTopic;
 import twitter4j.JSONObject;
@@ -77,11 +82,13 @@ public class TRECScenarioARunnable extends TimerTask {
 	TimeZone timeZone;
 	DateFormat format;
 	Calendar now;
+	boolean useBroker = true;
+	String api;
 
 	private static final Logger LOG = TRECIndexer.LOG;
 	// LogManager.getLogger(TRECSearcher.class);
 
-//	static TweetTopic[] topics;
+	// static TweetTopic[] topics;
 	IndexWriter indexWriter = TRECIndexer.indexWriter;
 	private IndexReader reader; // should it be static or one copy per
 								// thread? to be answered
@@ -122,7 +129,7 @@ public class TRECScenarioARunnable extends TimerTask {
 			expansionQuery = "";
 			for (String expansionCluster : expansion) {
 				expansionQuery = expansionQuery + "(" + expansionCluster + ")^"
-						+ (new Integer(expansionBoostFactor).toString())+" ";
+						+ (new Integer(expansionBoostFactor).toString()) + " ";
 			}
 			LOG.info(expansionQuery);
 			// delete the endding whitespace
@@ -153,14 +160,41 @@ public class TRECScenarioARunnable extends TimerTask {
 
 				this.expansion.add(thisExpansionCluster.substring(0, thisExpansionCluster.length() - 4));
 			}
-			LOG.info("The expansion term array parses as " + expansion.toString());
+//			LOG.info("The expansion term array parses as " + expansion.toString());
 		}
 	}
 
-	public TRECScenarioARunnable(String index, String interestProfilePath, String mailList,
-			String startTimestamp) throws FileNotFoundException, IOException {
+	public TRECScenarioARunnable(String index, String interestProfilePath, String api)
+			throws FileNotFoundException, IOException {
 
-		LOG.info("Setting up TweetPusher Thread");
+		useBroker = true;
+		this.indexPath = index;
+		this.api = api;
+
+		String JSONObjectString = "";
+		try (BufferedReader br = new BufferedReader(new FileReader(interestProfilePath))) {
+			String line = br.readLine();
+
+			while (line != null) {
+				JSONObjectString = JSONObjectString + line;
+				line = br.readLine();
+			}
+		}
+		JsonObject interestProfileObject = (JsonObject) JSON_PARSER.parse(JSONObjectString);
+		thisInterestProfile = new InterestProfile(interestProfileObject.get("index").toString(),
+				interestProfileObject.get("query").toString(), interestProfileObject.getAsJsonArray("expansion"));
+		LOG.info("Set up TweetPusher Thread");
+
+		format = new SimpleDateFormat("E dd MMM yyyy HH:mm:ss zz");
+		format.setTimeZone(TimeZone.getTimeZone("UTC"));
+		now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+
+	}
+
+	public TRECScenarioARunnable(String index, String interestProfilePath, String mailList, String startTimestamp)
+			throws FileNotFoundException, IOException {
+
+//		LOG.info("Setting up TweetPusher Thread");
 		this.indexPath = index;
 		this.startTimestamp = startTimestamp;
 
@@ -180,10 +214,10 @@ public class TRECScenarioARunnable extends TimerTask {
 		thisInterestProfile = new InterestProfile(interestProfileObject.get("index").toString(),
 				interestProfileObject.get("query").toString(), interestProfileObject.getAsJsonArray("expansion"));
 		LOG.info("Set up TweetPusher Thread");
-		
+
 		format = new SimpleDateFormat("E dd MMM yyyy HH:mm:ss zz");
 		format.setTimeZone(TimeZone.getTimeZone("UTC"));
-		now=Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+		now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
 	}
 
@@ -219,14 +253,33 @@ public class TRECScenarioARunnable extends TimerTask {
 		}
 		return false;
 	}
+	
+	/* POST /tweet/:topid/:tweetid/:clientid */
+	public void postTweetListScenarioA(ArrayList<String> tweetList,String api){
+		for (String tweetid : tweetList) {
+			WebTarget webTarget = client.target(api.replace(":tweetid", tweetid));
+
+			Response postResponse = webTarget.request(MediaType.APPLICATION_JSON)
+					.post(Entity.entity(new String(""), MediaType.APPLICATION_JSON));
+			LOG.info("Registrer status " + postResponse.getStatus());
+
+			if (postResponse.getStatus() == 204) {
+				LOG.info("Scenario A, " + api.replace(":tweetid", tweetid)
+						+ " Returns a 204 status code on push notification succes");
+			}
+
+		}
+		
+	}
 
 	@SuppressWarnings("deprecation")
 	@Override
 	public void run() {
 		LOG.info("Running TweetPusher Thread");
 		try {
-//			When a new day starts
-			if (Calendar.getInstance(TimeZone.getTimeZone("UTC")).get(Calendar.DAY_OF_YEAR) != now.get(Calendar.DAY_OF_YEAR))
+			// When a new day starts
+			if (Calendar.getInstance(TimeZone.getTimeZone("UTC")).get(Calendar.DAY_OF_YEAR) != now
+					.get(Calendar.DAY_OF_YEAR))
 				pushedTweets.clear();
 			Query q = new QueryParser(TRECIndexerRunnable.StatusField.TEXT.name, TRECIndexer.ANALYZER)
 					.parse(thisInterestProfile.titleQueryString());
@@ -354,18 +407,23 @@ public class TRECScenarioARunnable extends TimerTask {
 							pushedTweets.put(d.get(TRECIndexerRunnable.StatusField.ID.name),
 									d.get(TRECIndexerRunnable.StatusField.TEXT.name));
 
-						} 
+						}
 						if (pushedTweets.size() >= dailylimit) {
 							shutDown = true;
 							break;
 
 						}
 					}
-					if (tweetList.size() > 0)
+					if (tweetList.size() > 0 && !useBroker)
 						SendAttachmentInEmail.sendDigestBlockquote(mailList, tweetList, userNameList,
 								userScreenNameList, userImageProfileURLList, textList, epochList, startTimestamp,
-								"ScenarioA " + thisInterestProfile.topicIndex + ":" + thisInterestProfile.query+" #"+(pushedTweets.size()-tweetList.size()+1)+"-"+pushedTweets.size());
+								"ScenarioA " + thisInterestProfile.topicIndex + ":" + thisInterestProfile.query + " #"
+										+ (pushedTweets.size() - tweetList.size() + 1) + "-" + pushedTweets.size());
 
+					else if (tweetList.size() > 0 && useBroker) {
+						postTweetListScenarioA(tweetList,api);
+
+					}
 				}
 			} else {
 				LOG.info("For this iteration, no single tweet hit even only the title field");
@@ -386,8 +444,8 @@ public class TRECScenarioARunnable extends TimerTask {
 				tomorrow.set(Calendar.DAY_OF_YEAR, now.get(Calendar.DAY_OF_YEAR) + 1);
 				tomorrow.setTimeZone(TimeZone.getTimeZone("UTC"));
 				LOG.info("Reached dailyLimit, sleep for the rest of the day");
-				LOG.info(tomorrow.getTimeInMillis() + " " + now.getTimeInMillis() );
-				Thread.sleep((long) tomorrow.getTimeInMillis() - now.getTimeInMillis()+60000);
+				LOG.info(tomorrow.getTimeInMillis() + " " + now.getTimeInMillis());
+				Thread.sleep((long) tomorrow.getTimeInMillis() - now.getTimeInMillis() + 60000);
 				now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 				shutDown = false;
 				LOG.info("Woke up at this new day!");
