@@ -259,8 +259,8 @@ public class TRECScenarioBRunnable extends TimerTask {
 				.post(Entity.entity(tweetsJSONString, MediaType.APPLICATION_JSON));
 		LOG.info("Registrer status " + postResponse.getStatus());
 
-		if (postResponse.getStatus() == 204) {
-			LOG.info("Scenario B, " + api + " Returns a 204 status code on push notification succes");
+		if (postResponse.getStatus() == 204||postResponse.getStatus() == 429) {
+			LOG.info("Scenario B, " + api + " Returns a "+postResponse.getStatus()+" status code on push notification succes");
 		}
 
 	}
