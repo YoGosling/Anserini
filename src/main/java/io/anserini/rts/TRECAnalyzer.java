@@ -20,28 +20,15 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
-import org.apache.lucene.analysis.en.PorterStemFilter;
 
-import io.anserini.index.IndexTweets.StatusField;
 import io.anserini.index.twitter.LowerCaseEntityPreservingFilter;
 
 public final class TRECAnalyzer extends Analyzer {
 
 	@Override
 	protected TokenStreamComponents createComponents(String fieldName) {
-
-		// return neFw TokenStreamComponents(new WhitespaceTokenizer());
-		// if (fieldName.equals(StatusField.TEXT.name)) {
-		// return new TokenStreamComponents(new WhitespaceTokenizer());
-		// } else {
 		Tokenizer source = new WhitespaceTokenizer();
 		TokenStream filter = new LowerCaseEntityPreservingFilter(source);
-
-		// filter = new PorterStemFilter(filter);
-
 		return new TokenStreamComponents(source, filter);
-
-		// }
-
 	}
 }

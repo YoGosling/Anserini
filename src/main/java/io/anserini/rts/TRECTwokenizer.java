@@ -1,9 +1,9 @@
 package io.anserini.rts;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
+//import java.io.BufferedReader;
+//import java.io.IOException;
+//import java.io.InputStreamReader;
+//import java.io.PrintStream;
 import java.util.regex.*;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -324,17 +324,17 @@ public class TRECTwokenizer {
 		return Whitespace.matcher(input).replaceAll(" ").trim();
 	}
 
-	// Final pass tokenization based on special patterns
-	private static List<String> splitToken(String token) {
-
-		Matcher m = Contractions.matcher(token);
-		if (m.find()) {
-			String[] contract = { m.group(1), m.group(2) };
-			return Arrays.asList(contract);
-		}
-		String[] contract = { token };
-		return Arrays.asList(contract);
-	}
+//	// Final pass tokenization based on special patterns
+//	private static List<String> splitToken(String token) {
+//
+//		Matcher m = Contractions.matcher(token);
+//		if (m.find()) {
+//			String[] contract = { m.group(1), m.group(2) };
+//			return Arrays.asList(contract);
+//		}
+//		String[] contract = { token };
+//		return Arrays.asList(contract);
+//	}
 
 	/** Assume 'text' has no HTML escaping. **/
 	public static List<String> tokenize(String text) {
@@ -370,7 +370,6 @@ public class TRECTwokenizer {
 		String whiteSpacedTokenizedText = "";
 
 		Set<String> TRECtokens = new HashSet<String>();
-		ArrayList<String> TRECarrays = new ArrayList<String>();
 		for (String t : tokens) {
 			if (t.matches(regex) && !chars.contains(t)) {
 				t = t.toLowerCase();
@@ -395,7 +394,6 @@ public class TRECTwokenizer {
 		int hashTagCount = 0;
 
 		Set<String> TRECtokens = new HashSet<String>();
-		ArrayList<String> TRECarrays = new ArrayList<String>();
 		for (String t : tokens) {
 			if (t.matches(regex) && !chars.contains(t)) {
 				t = t.toLowerCase();
@@ -406,7 +404,6 @@ public class TRECTwokenizer {
 				TRECtokens.add(t);
 			}
 		}
-		// int TRECtokensCount=TRECtokens.size()-2*hashTagCount;
 		// low quality tweets filter
 		if (TRECtokens.size() < 5 || hashTagCount > 3)
 			return "";
@@ -425,7 +422,6 @@ public class TRECTwokenizer {
 		String whiteSpacedTokenizedText = "";
 
 		Set<String> TRECtokens = new HashSet<String>();
-		ArrayList<String> TRECarrays = new ArrayList<String>();
 		for (String t : tokens) {
 			if (t.matches(regex) && !chars.contains(t)) {
 				t = t.toLowerCase();
@@ -444,28 +440,5 @@ public class TRECTwokenizer {
 		return whiteSpacedTokenizedText.substring(0, whiteSpacedTokenizedText.length() - 1);
 	}
 
-	/**
-	 * Tokenizes tweet texts on standard input, tokenizations on standard
-	 * output. Input and output UTF-8.
-	 */
-	public static void main(String[] args) throws IOException {
-		TRECTwokenizer trecTwokenizer = new TRECTwokenizer();
-		BufferedReader input = new BufferedReader(new InputStreamReader(System.in, "UTF-8"));
-		PrintStream output = new PrintStream(System.out, true, "UTF-8");
-		String line;
-		while ((line = input.readLine()) != null) {
-			// List<String> toks = tokenizeRawTweetText(line);
-			// List<String> toks = trecTokenizeText(line);
-			String toks = trecTokenizeText(line);
-			output.print(toks);
-			// for (int i = 0; i < toks.size(); i++) {
-			// output.print(toks.get(i));
-			// if (i < toks.size() - 1) {
-			// output.print(" ");
-			// }
-			// }
-			output.print("\n");
-		}
-	}
 
 }

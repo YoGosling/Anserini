@@ -79,17 +79,6 @@
 							<name>ExtractRm3Stopwords</name>
 						</program>
 
-
-
-						<program>
-							<mainClass>io.anserini.rts.TRECIndexer</mainClass>
-							<name>TRECIndexer</name>
-						</program>
-
-						<program>
-							<mainClass>io.anserini.rts.TRECScenarioSearcher</mainClass>
-							<name>TRECScenarioSearcher</name>
-						</program>
 						<program>
 							<mainClass>io.anserini.rts.TRECSearcher</mainClass>
 							<name>TRECSearcher</name>

@@ -1,41 +1,67 @@
 YoGosling
 ========
 
-Build using Maven:
+###Build using Maven
 
 ```
 mvn clean package appassembler:assemble
 ```
 
-Build index 
+###Index and search 
 
 ```
-nohup sh target/appassembler/bin/TRECIndexer -index <index_name>    > nohup.out &
+nohup sh target/appassembler/bin/TRECSearcer -groupid uwar -index <index_name>  -host localhost -port 3333    > nohup.out &
+
+```
+###Example: Star Wars 
+
+Document #298: { coins } ll 2016 Niue $2 1 oz. Proof Silver Star Wars Classics Series - Han Solo | GEM Proof (Original Mint ... [link](https://t.co/6pQTdwW9Iw) 
+
+Interest Profile: Star Wars
+
+	titleQuery: text:star text:wars 
+
+	titleCoordSimilarity = 2/2 = 1.0 
+
+	titleExpansionQuery: +(text:star^3.0 text:wars^3.0) #epoch:[1464847032 TO 1464847092]
+	
+	titleExpansionSimilarity = 6.0 (as follows)
+	
+	finalSimilarityScore = 1.0 * 6.0 = 6.0
+
+YoGosling log snippet
+
+```
+2016-06-02 13:58:12,592 INFO  [Timer-2] rts.TRECScenarioRunnable (TRECScenarioRunnable.java:305) - 6.0 = sum of:
+  3.0 = weight(text:star^3.0 in 298) [TitleExpansionSimilarity], result of:
+    3.0 = score(doc=298,freq=1.0), product of:
+      3.0 = queryWeight, product of:
+        3.0 = boost
+        1.0 = idf(docFreq=1, maxDocs=445)
+        1.0 = queryNorm
+      1.0 = fieldWeight in 298, product of:
+        1.0 = tf(freq=1.0), with freq of:
+          1.0 = termFreq=1.0
+        1.0 = idf(docFreq=1, maxDocs=445)
+        1.0 = fieldNorm(doc=298)
+  3.0 = weight(text:wars^3.0 in 298) [TitleExpansionSimilarity], result of:
+    3.0 = score(doc=298,freq=1.0), product of:
+      3.0 = queryWeight, product of:
+        3.0 = boost
+        1.0 = idf(docFreq=1, maxDocs=445)
+        1.0 = queryNorm
+      1.0 = fieldWeight in 298, product of:
+        1.0 = tf(freq=1.0), with freq of:
+          1.0 = termFreq=1.0
+        1.0 = idf(docFreq=1, maxDocs=445)
+        1.0 = fieldNorm(doc=298)
+
+2016-06-02 13:58:12,592 INFO  [Timer-2] rts.TRECScenarioRunnable (TRECScenarioRunnable.java:306) - Multiplied by 1.0 Final score 6.0
+2016-06-02 13:58:12,592 INFO  [Timer-2] rts.TRECScenarioRunnable (TRECScenarioRunnable.java:308) - Raw text{ coins } ll 2016 Niue $2 1 oz. Proof Silver Star Wars Classics Series - Han Solo | GEM Proof (Original Mint ... https://t.co/6pQTdwW9Iw 2
 
 ```
 
-Search with either Scenario A or B
 
-```
-nohup sh target/appassembler/bin/TRECScenarioSearcher -index <index_name> -mailList <email_address, comma separated> -topicSequence <topic_id, 3 digits, colon separated> -scenario <A/B> > nohup.out &
-
-e.g. nohup sh target/appassembler/bin/TRECScenarioSearcher -index 160418 -mailList yogosling@gmail.com,helloanserini@gmail.com -topicSequence 313:242:265:292:390:274:262:415 -scenario A > nohup_4452.out &
-
-```
-
-There is also an index diagnostic page which helps to check the "health condition" of our index. You can visit the page via SOCKS proxy (ssh to remote server and build a tunnel)
-
-[See this tutorial] (http://www.startupcto.com/server-tech/macosx/setting-up-a-socks-proxy-in-mac-osx)
-
-
-For Mac user, Firefox is required
-
-```
-sh target/appassembler/bin/TweetSearcher -index 20160419 -port 8080
-```
-After the above configuration, you are able to visit the diagnostic page by address localhost:8080
-
-Access index diagnostic page via [http://localhost:8080](http://localhost:8080), where you will get a list of statistics, e.g. # of tweets indexed, startTime, etc. 
 
 
 

@@ -30,21 +30,10 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHandler;
-import org.eclipse.jetty.server.handler.ResourceHandler;
-import org.eclipse.jetty.server.handler.HandlerList;
-
-import io.anserini.index.twitter.TweetAnalyzer;
 import twitter4j.JSONException;
-
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.glassfish.jersey.servlet.ServletContainer;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -56,7 +45,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 public class TRECSearcher {
@@ -66,64 +54,62 @@ public class TRECSearcher {
 	private static final String INDEX_OPTION = "index";
 	private static final String PORT_OPTION = "port";
 	private static final String GROUPID_OPTION = "groupid";
-	static String api_base;
-	static TRECTopic[] topics;
+	private static final String interestProfilePath = "src/main/java/io/anserini/rts/public/TREC2016Profiles/";
 
-	static Client client = ClientBuilder.newClient();
-	static String clientid;
-	static String groupid;
+	private static String api_base;
+	private static TRECTopic[] topics;
 
-	static String interestProfilePath;
-	static String[] mailList;
+	private static final Client client = ClientBuilder.newClient();
+	private static String clientid;
+	private static String groupid;
 
 	public static Directory index;
-	public static String indexName;
 	public static IndexWriter indexWriter;
+	public static String indexName;
 	public static TRECIndexerRunnable its;
-	public static Server server;
-
 	public static final Analyzer ANALYZER = new WhitespaceAnalyzer();
-	public static boolean isServerTerminated = false;
 
-	static long minuteInterval = 60000;
-	static long dailyInterval = 24 * 3600000;
+	private static long minuteInterval = 60 * 1000;
+	private static long dailyInterval = 24 * 60 * 60 * 1000;
 
 	public TRECSearcher(String dir) throws IOException {
-		indexName = dir;
-
 		FileUtils.deleteDirectory(new File(dir));
-
 		index = new MMapDirectory(Paths.get(dir));
+		indexName = dir;
 		IndexWriterConfig config = new IndexWriterConfig(ANALYZER);
-		config.setSimilarity(new TRECSimilarity());
 		indexWriter = new IndexWriter(index, config);
-
-	}
-
-	public TRECSearcher() throws IOException {
 	}
 
 	public void close() throws IOException {
 		indexWriter.close();
 	}
 
+	class ConnectBrokerAPIException extends Exception {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public ConnectBrokerAPIException(String msg) {
+			super(msg);
+		}
+	}
+
 	/* First stage: client registers from broker and gets client id */
 	public void register() throws JsonProcessingException, IOException, JSONException {
 		WebTarget webTarget = client.target(api_base + "register/system");
-
 		Response postResponse = webTarget.request(MediaType.APPLICATION_JSON)
 				.post(Entity.entity(new String("{\"groupid\":\"" + groupid + "\"}"), MediaType.APPLICATION_JSON));
-		LOG.info("Registrer status " + postResponse.getStatus());
-
+		LOG.info("Register status " + postResponse.getStatus());
 		if (postResponse.getStatus() == 200) {
 			String jsonString = postResponse.readEntity(String.class);
 			JsonNode rootNode = new ObjectMapper().readTree(new StringReader(jsonString));
 			clientid = rootNode.get("clientid").asText();
-			LOG.info("Register success, clientid is " + clientid);
+			LOG.info("Register success with clientid " + clientid);
 		} else
 			try {
-				throw new RegisterException("Register failed to register with this groupid");
-			} catch (RegisterException e) {
+				throw new ConnectBrokerAPIException("Register failed with the groupid " + groupid);
+			} catch (ConnectBrokerAPIException e) {
 				System.out.println(postResponse.getStatus());
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -148,31 +134,24 @@ public class TRECSearcher {
 
 	/* Second stage: client gets topics from broker */
 	public void getTopic() throws JsonParseException, JsonMappingException, IOException, JSONException {
-		/*
-		 * topics Json format:
-		 * [{"topid":"test1","query":"birthday"},{"topid":"test2","query":
-		 * "batman"},{"topid":"test3","query":"star wars"}]
-		 */
 		WebTarget webTarget = client.target(api_base + "topics/" + clientid);
-
 		Response postResponse = webTarget.request(MediaType.APPLICATION_JSON).get();
 
 		if (postResponse.getStatus() == 200) {
-			LOG.info("Retrieve topics success");
+			LOG.info("Get topics success");
 			String jsonString = postResponse.readEntity(String.class);
 			ObjectMapper mapper = new ObjectMapper();
 			topics = mapper.readValue(jsonString, TypeFactory.defaultInstance().constructArrayType(TRECTopic.class));
 
-			File file = new File("src/main/java/io/anserini/rts/public/TREC2016Profiles");
+			File file = new File(interestProfilePath);
 			boolean isDirectoryCreated = file.mkdir();
 			if (isDirectoryCreated) {
 				LOG.info("Interest profile directory successfully made");
 			} else {
 				FileUtils.deleteDirectory(file);
 				file.mkdir();
-				LOG.info("Interest profile directory deleted and made");
+				LOG.info("Interest profile directory successfully covered");
 			}
-
 			for (int i = 0; i < topics.length; i++) {
 
 				JsonObject obj = new JsonObject();
@@ -180,33 +159,28 @@ public class TRECSearcher {
 				obj.addProperty("query", topics[i].query);
 				obj.add("expansion", new JsonArray());
 
-				// try-with-resources statement based on post comment below :)
-				try (FileWriter topicFile = new FileWriter(
-						"src/main/java/io/anserini/rts/public/TREC2016Profiles/" + topics[i].topid + ".json")) {
+				try (FileWriter topicFile = new FileWriter(interestProfilePath + topics[i].topid + ".json")) {
 					topicFile.write(obj.toString());
-					LOG.info("Successfully wrote topic interest profile to disk...Topic " + topics[i].topid + ": "
-							+ topics[i].query);
+					LOG.info("Successfully wrote interest profile " + topics[i].topid + " to disk.");
 				}
 			}
-		}
+		} else
+			try {
+				throw new ConnectBrokerAPIException("Get topics failed.");
+			} catch (ConnectBrokerAPIException e) {
+				System.out.println(postResponse.getStatus());
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
-	}
-
-	class RegisterException extends Exception {
-		public RegisterException(String msg) {
-			super(msg);
-		}
 	}
 
 	public static void main(String[] args) throws Exception {
 		Options options = new Options();
-		options.addOption(HOST_OPTION, true, "hostname");
+		options.addOption(HOST_OPTION, true, "host");
 		options.addOption(INDEX_OPTION, true, "index path");
 		options.addOption(PORT_OPTION, true, "port");
 		options.addOption(GROUPID_OPTION, true, "groupid");
-
-		options.addOption("broker", true, "broker");
-		options.addOption("mailList", true, "mailList");
 
 		CommandLine cmdline = null;
 		CommandLineParser parser = new GnuParser();
@@ -217,7 +191,8 @@ public class TRECSearcher {
 			System.exit(-1);
 		}
 
-		if (!cmdline.hasOption(INDEX_OPTION)) {
+		if (!cmdline.hasOption(HOST_OPTION) || !cmdline.hasOption(INDEX_OPTION) || !cmdline.hasOption(PORT_OPTION)
+				|| !cmdline.hasOption(GROUPID_OPTION)) {
 			HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp(TRECSearcher.class.getName(), options);
 			System.exit(-1);
@@ -225,57 +200,17 @@ public class TRECSearcher {
 
 		String host = cmdline.getOptionValue(HOST_OPTION);
 		groupid = cmdline.getOptionValue(GROUPID_OPTION);
-		int port = cmdline.hasOption(PORT_OPTION) ? Integer.parseInt(cmdline.getOptionValue(PORT_OPTION)) : 8080;
+		int port = Integer.parseInt(cmdline.getOptionValue(PORT_OPTION));
 		api_base = new String("http://" + host + ":" + port + "/");
-
-		TRECSearcher nrtsearch = new TRECSearcher(cmdline.getOptionValue(INDEX_OPTION));
-		nrtsearch.register();
-		nrtsearch.getTopic();
-
-		LOG.info("Starting TRECStreamIndexer");
+		TRECSearcher rtsSearch = new TRECSearcher(cmdline.getOptionValue(INDEX_OPTION));
+		rtsSearch.register();
+		rtsSearch.getTopic();
 
 		its = new TRECIndexerRunnable(indexWriter);
 		Thread itsThread = new Thread(its);
 		itsThread.start();
 
-		LOG.info(TRECSearcher.its.startTime);
-		LOG.info("Starting HTTP server on port 8080");
-
-		HandlerList mainHandler = new HandlerList();
-
-		server = new Server(8080);
-
-		ResourceHandler resource_handler = new ResourceHandler();
-
-		resource_handler.setResourceBase("src/main/java/io/anserini/rts/public");
-		resource_handler.setWelcomeFiles(new String[] { "index.html" });
-
-		ServletContextHandler handler = new ServletContextHandler(ServletContextHandler.SESSIONS);
-		handler.setContextPath("/");
-		ServletHolder jerseyServlet = new ServletHolder(ServletContainer.class);
-		jerseyServlet.setInitParameter("jersey.config.server.provider.classnames",
-				TRECIndexerServerAPI.class.getCanonicalName());
-		handler.addServlet(jerseyServlet, "/*");
-
-		mainHandler.addHandler(resource_handler);
-		mainHandler.addHandler(handler);
-		server.setHandler(mainHandler);
-		try {
-			server.start();
-			LOG.info("Accepting connections on port 8080");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		itsThread.join();
-
-		String mailList = cmdline.hasOption("mailList") ? cmdline.getOptionValue("mailList")
-				: new String("445232908@qq.com");
-		@SuppressWarnings("deprecation")
 		Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-		String startTimestamp = "run since " + now.getTime().toString();
-		LOG.info("Get current epoch" + Calendar.getInstance().getTimeInMillis());
 		ArrayList<TimerTask> threadList = new ArrayList<TimerTask>();
 		ArrayList<Timer> timerList = new ArrayList<Timer>();
 
@@ -290,59 +225,34 @@ public class TRECSearcher {
 
 		for (TRECTopic topic : topics) {
 			Timer timer = new Timer();
-			if (cmdline.hasOption("mailList")) {
-				TimerTask tasknew = new TRECScenarioARunnable(indexName,
-						"src/main/java/io/anserini/rts/public/TREC2016Profiles/" + topic.topid + ".json", mailList,
-						startTimestamp);
+			TimerTask tasknew = new TRECScenarioRunnable(indexName, interestProfilePath + topic.topid + ".json",
+					api_base + "tweet/" + topic.topid + "/:tweetid/" + clientid, "A");
 
-				timer.scheduleAtFixedRate(tasknew, 0, minuteInterval);
-				threadList.add(tasknew);
-				timerList.add(timer);
-			} else if (cmdline.getOptionValue("broker").equals("yes")) {
-				TimerTask tasknew = new TRECScenarioARunnable(indexName,
-						"src/main/java/io/anserini/rts/public/TREC2016Profiles/" + topic.topid + ".json",
-						api_base + "tweet/" + topic.topid + "/:tweetid/" + clientid);
-
-				timer.scheduleAtFixedRate(tasknew, 30000, minuteInterval);
-				threadList.add(tasknew);
-				timerList.add(timer);
-			}
+			// Schedule scenario A search task every minute Interval
+			// At the first time, there's a 30000 milliseconds delay for the
+			// delay in connecting Twitter Streaming API
+			timer.scheduleAtFixedRate(tasknew, 30000, minuteInterval);
+			threadList.add(tasknew);
+			timerList.add(timer);
 		}
 
 		for (TRECTopic topic : topics) {
 			Timer timer = new Timer();
-			if (cmdline.hasOption("mailList")) {
-				TimerTask tasknew = new TRECScenarioBRunnable(indexName,
-						"src/main/java/io/anserini/rts/public/TREC2016Profiles/" + topic.topid + ".json", mailList,
-						startTimestamp);
-				LOG.info(tomorrow.getTimeInMillis() + " " + now.getTimeInMillis());
-				timer.scheduleAtFixedRate(tasknew, (long) (tomorrow.getTimeInMillis() - now.getTimeInMillis()),
-						dailyInterval);
-				threadList.add(tasknew);
-				timerList.add(timer);
-			} else if (cmdline.getOptionValue("broker").equals("yes")) {
-				TimerTask tasknew = new TRECScenarioBRunnable(indexName,
-						"src/main/java/io/anserini/rts/public/TREC2016Profiles/" + topic.topid + ".json",
-						api_base + "tweets/" + topic.topid + "/" + clientid);
-				LOG.info(tomorrow.getTimeInMillis() + " " + now.getTimeInMillis());
-				timer.scheduleAtFixedRate(tasknew, (long) (tomorrow.getTimeInMillis() - now.getTimeInMillis()),
-						dailyInterval);
-				threadList.add(tasknew);
-				timerList.add(timer);
+			TimerTask tasknew = new TRECScenarioRunnable(indexName, interestProfilePath + topic.topid + ".json",
+					api_base + "tweets/" + topic.topid + "/" + clientid, "B");
+			LOG.info(tomorrow.getTimeInMillis() + " " + now.getTimeInMillis());
 
-			}
+			// Schedule scenario B search task every day at 0'00'01
+			// The 1000 milliseconds delay is to ensure that the search action
+			// lies exactly at the new day, as long as 1000 milliseconds delay
+			// will not discount the reward.
+			// At the first time, there's a delay to wait till a new day.
+			timer.scheduleAtFixedRate(tasknew, (long) (tomorrow.getTimeInMillis() - now.getTimeInMillis() + 1000),
+					dailyInterval);
+			threadList.add(tasknew);
+			timerList.add(timer);
 		}
 
-		LOG.info("TRECQueryListernerThread started");
-
-		while (!itsThread.isAlive() && !isServerTerminated) {
-			Thread.sleep(3000);
-			System.out.println("In Main, isServerTerminated=false");
-		}
-		System.out.println("In Main, isServerTerminated=true");
-		server.stop();
-		server.join();
-
-		nrtsearch.close();
+		itsThread.join();
 	}
 }
