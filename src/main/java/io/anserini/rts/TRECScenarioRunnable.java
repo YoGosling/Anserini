@@ -97,6 +97,7 @@ public class TRECScenarioRunnable extends TimerTask {
 			throws FileNotFoundException, IOException {
 		this.indexPath = index;
 		this.api = api;
+		LOG.info(api);
 		this.scenario = scenario;
 		if (scenario.equals("A"))
 			interval = 60000;
@@ -165,7 +166,7 @@ public class TRECScenarioRunnable extends TimerTask {
 
 			if (postResponse.getStatus() == 204 || postResponse.getStatus() == 429) {
 				LOG.info("Scenario A, " + api.replace(":tweetid", tweetid) + " Returns a " + postResponse.getStatus()
-						+ " status code on push notification succes");
+						+ " status code on push notification succes at "+Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString());
 			}
 
 		}
@@ -188,7 +189,7 @@ public class TRECScenarioRunnable extends TimerTask {
 
 		if (postResponse.getStatus() == 204 || postResponse.getStatus() == 429) {
 			LOG.info("Scenario B, " + api + " Returns a " + postResponse.getStatus()
-					+ " status code on push notification succes");
+					+ " status code on push notification succes at "+Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString());
 		}
 
 	}
@@ -335,7 +336,7 @@ public class TRECScenarioRunnable extends TimerTask {
 			}
 
 			if (scenario.equals("A") && !shutDown) {
-				LOG.info("Nothing interesting today, Gonna sleep for regular interval");
+				LOG.info(api+"Nothing interesting today, Gonna sleep for regular interval");
 				now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
 			}

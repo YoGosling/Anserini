@@ -99,7 +99,8 @@ public class TRECSearcher {
 	public void register() throws JsonProcessingException, IOException, JSONException {
 		WebTarget webTarget = client.target(api_base + "register/system");
 		Response postResponse = webTarget.request(MediaType.APPLICATION_JSON)
-				.post(Entity.entity(new String("{\"groupid\":\"" + groupid + "\"}"), MediaType.APPLICATION_JSON));
+				.post(Entity.entity(new String("{\"groupid\":\"" + groupid + "\",\"alias\":\"system alias\"}"),
+						MediaType.APPLICATION_JSON));
 		LOG.info("Register status " + postResponse.getStatus());
 		if (postResponse.getStatus() == 200) {
 			String jsonString = postResponse.readEntity(String.class);
@@ -108,9 +109,9 @@ public class TRECSearcher {
 			LOG.info("Register success with clientid " + clientid);
 		} else
 			try {
-				throw new ConnectBrokerAPIException("Register failed with the groupid " + groupid);
+				throw new ConnectBrokerAPIException(postResponse.getStatus() + postResponse.getStatusInfo().toString()
+						+ "\nRegister failed with the groupid " + groupid);
 			} catch (ConnectBrokerAPIException e) {
-				System.out.println(postResponse.getStatus());
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
@@ -121,14 +122,18 @@ public class TRECSearcher {
 	static public class TRECTopic {
 		@JsonProperty("topid")
 		public String topid;
-		@JsonProperty("query")
-		public String query;
+		@JsonProperty("title")
+		public String title;
+		@JsonProperty("body")
+		public String body;
 
 		@JsonCreator
-		public TRECTopic(@JsonProperty("topid") String topicID, @JsonProperty("query") String query) {
+		public TRECTopic(@JsonProperty("topid") String topicID, @JsonProperty("title") String title,
+				@JsonProperty("body") String body) {
 			super();
 			this.topid = topicID;
-			this.query = query;
+			this.title = title;
+			this.body = body;
 		}
 	}
 
@@ -156,7 +161,7 @@ public class TRECSearcher {
 
 				JsonObject obj = new JsonObject();
 				obj.addProperty("index", topics[i].topid);
-				obj.addProperty("query", topics[i].query);
+				obj.addProperty("query", topics[i].title);
 				obj.add("expansion", new JsonArray());
 
 				try (FileWriter topicFile = new FileWriter(interestProfilePath + topics[i].topid + ".json")) {
@@ -166,9 +171,9 @@ public class TRECSearcher {
 			}
 		} else
 			try {
-				throw new ConnectBrokerAPIException("Get topics failed.");
+				throw new ConnectBrokerAPIException(
+						postResponse.getStatus() + postResponse.getStatusInfo().toString() + "\nGet topics failed.");
 			} catch (ConnectBrokerAPIException e) {
-				System.out.println(postResponse.getStatus());
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
