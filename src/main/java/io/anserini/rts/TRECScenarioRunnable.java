@@ -301,7 +301,7 @@ public class TRECScenarioRunnable extends TimerTask {
 						if (pushedTweets.size() < dailylimit
 								&& !pushedTweets.containsKey(d.get(TRECIndexerRunnable.StatusField.ID.name))
 								&& !isDuplicate(d.get(TRECIndexerRunnable.StatusField.TEXT.name))
-								&& finalHits.get(j).score >= thisInterestProfile.queryTokenCount * 2) {
+								&& finalHits.get(j).score >= thisInterestProfile.queryTokenCount * 3) {
 
 							LOG.info(searcher.explain(titleExpansionQuery, docId).toString());
 							LOG.info(
@@ -336,7 +336,7 @@ public class TRECScenarioRunnable extends TimerTask {
 			}
 
 			if (scenario.equals("A") && !shutDown) {
-				LOG.info(api+"Nothing interesting today, Gonna sleep for regular interval");
+				LOG.info("Nothing interesting today, Gonna sleep for regular interval");
 				now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
 			}
