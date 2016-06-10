@@ -1,5 +1,6 @@
 package io.anserini.rts;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -33,7 +34,9 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 
+import twitter4j.JSONArray;
 import twitter4j.JSONException;
+import twitter4j.JSONObject;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -44,8 +47,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 
 public class TRECSearcher {
 	public static final Logger LOG = LogManager.getLogger(TRECSearcher.class);
@@ -55,6 +56,9 @@ public class TRECSearcher {
 	private static final String PORT_OPTION = "port";
 	private static final String GROUPID_OPTION = "groupid";
 	private static final String interestProfilePath = "src/main/java/io/anserini/rts/TREC2016Profiles/";
+	private static final String scenarioLogPath = "src/main/java/io/anserini/rts/scenarioLog";
+	static BufferedWriter scenarioALogWriter;
+	static BufferedWriter scenarioBLogWriter;
 
 	private static String api_base;
 	private static TRECTopic[] topics;
@@ -161,10 +165,10 @@ public class TRECSearcher {
 			}
 			for (int i = 0; i < topics.length; i++) {
 
-				JsonObject obj = new JsonObject();
-				obj.addProperty("index", topics[i].topid);
-				obj.addProperty("query", topics[i].title);
-				obj.add("expansion", new JsonArray());
+				JSONObject obj = new JSONObject();
+				obj.put("index", topics[i].topid);
+				obj.put("query", topics[i].title);
+				obj.put("expansion", new JSONArray());
 
 				try (FileWriter topicFile = new FileWriter(interestProfilePath + topics[i].topid + ".json")) {
 					topicFile.write(obj.toString());
@@ -229,6 +233,19 @@ public class TRECSearcher {
 		tomorrow.set(Calendar.AM_PM, Calendar.AM);
 		tomorrow.set(Calendar.DAY_OF_YEAR, now.get(Calendar.DAY_OF_YEAR) + 1);
 		tomorrow.setTimeZone(TimeZone.getTimeZone("UTC"));
+		
+		File file = new File(scenarioLogPath);
+		boolean isDirectoryCreated = file.mkdir();
+		if (isDirectoryCreated) {
+			LOG.info("Scenario log profile directory successfully made");
+		} else {
+			FileUtils.deleteDirectory(file);
+			file.mkdir();
+			LOG.info("Scenario log profile directory successfully covered");
+		}
+		scenarioALogWriter = new BufferedWriter(new FileWriter(new File(scenarioLogPath + "/scenarioALog")));
+		scenarioBLogWriter = new BufferedWriter(new FileWriter(new File(scenarioLogPath + "/scenarioBLog")));
+
 
 		for (TRECTopic topic : topics) {
 			Timer timer = new Timer();

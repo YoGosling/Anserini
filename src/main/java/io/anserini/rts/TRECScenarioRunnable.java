@@ -1,6 +1,7 @@
 package io.anserini.rts;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -24,7 +25,6 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
 import org.apache.logging.log4j.Logger;
 
 import org.apache.lucene.document.Document;
@@ -80,6 +80,8 @@ public class TRECScenarioRunnable extends TimerTask {
 	private String scenario; // either "A" or "B"
 
 	private static final Logger LOG = TRECSearcher.LOG;
+	private static BufferedWriter scenarioALogWriter = TRECSearcher.scenarioALogWriter;
+	private static BufferedWriter scenarioBLogWriter = TRECSearcher.scenarioBLogWriter;
 	private IndexReader reader; // should it be static or one copy per
 								// thread? to be answered
 	HashMap<String, String> pushedTweets = new HashMap<String, String>();
@@ -113,12 +115,14 @@ public class TRECScenarioRunnable extends TimerTask {
 			}
 		}
 		JsonObject interestProfileObject = (JsonObject) JSON_PARSER.parse(JSONObjectString);
-		thisInterestProfile = new InterestProfile(interestProfileObject.get("index").toString(),
-				interestProfileObject.get("query").toString(), interestProfileObject.getAsJsonArray("expansion"));
+		thisInterestProfile = new InterestProfile(interestProfileObject.get("index").getAsString(),
+				interestProfileObject.get("query").getAsString(), interestProfileObject.getAsJsonArray("expansion"));
 		// LOG.info("Set up TweetPusher Thread");
+
 		format = new SimpleDateFormat("E dd MMM yyyy HH:mm:ss zz");
 		format.setTimeZone(TimeZone.getTimeZone("UTC"));
 		now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+
 	}
 
 	public class ScoreDocComparator implements Comparator<ScoreDocTimestamp> {
@@ -156,7 +160,8 @@ public class TRECScenarioRunnable extends TimerTask {
 	 * Scenario A, post search result to broker: POST
 	 * /tweet/:topid/:tweetid/:clientid
 	 */
-	public void postTweetListScenarioA(ArrayList<String> tweetList, String api) {
+	@SuppressWarnings("deprecation")
+	public void postTweetListScenarioA(ArrayList<String> tweetList, String api) throws IOException {
 		for (String tweetid : tweetList) {
 			Client client = ClientBuilder.newClient();
 			WebTarget webTarget = client.target(api.replace(":tweetid", tweetid));
@@ -168,6 +173,12 @@ public class TRECScenarioRunnable extends TimerTask {
 				LOG.info("Scenario A, " + api.replace(":tweetid", tweetid) + " Returns a " + postResponse.getStatus()
 						+ " status code on push notification succes at "
 						+ Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString());
+				scenarioALogWriter.write(
+						"Scenario A	" + Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString()
+								+ "	" + Calendar.getInstance().getTimeInMillis() + "	"
+								+ thisInterestProfile.topicIndex + "	" + tweetid);
+				scenarioALogWriter.newLine();
+				scenarioALogWriter.flush();
 			}
 			client.close();
 
@@ -176,27 +187,26 @@ public class TRECScenarioRunnable extends TimerTask {
 	}
 
 	/*
-	 * Scenario B, post search result to broker: POST /tweets/:topid/:clientid
+	 * Scenario B, post search result to broker deprecated: POST API
+	 * /tweets/:topid/:clientid deleted, write to files instead
 	 */
-	public void postTweetListScenarioB(ArrayList<String> tweetList, String api) {
-		Client client = ClientBuilder.newClient();
-		WebTarget webTarget = client.target(api);
-		String tweetsJSONString = "{\"tweets\":[";
+	@SuppressWarnings("deprecation")
+	public void postTweetListScenarioB(ArrayList<String> tweetList, String api) throws IOException {
+
 		for (String tweetid : tweetList) {
-			tweetsJSONString = tweetsJSONString + "\"" + tweetid + "\",";
+			scenarioBLogWriter
+					.write("Scenario B	" + Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString()
+							+ "	" + Calendar.getInstance().getTimeInMillis() + "	" + thisInterestProfile.topicIndex
+							+ "	" + tweetid);
+			scenarioBLogWriter.newLine();
+			scenarioBLogWriter.flush();
 		}
-		tweetsJSONString = tweetsJSONString.substring(0, tweetsJSONString.length() - 1) + "]}";
-		Response postResponse = webTarget.request(MediaType.APPLICATION_JSON)
-				.post(Entity.entity(tweetsJSONString, MediaType.APPLICATION_JSON));
-		LOG.info("Post status " + postResponse.getStatus());
 
-		if (postResponse.getStatus() == 204 || postResponse.getStatus() == 429) {
-			LOG.info("Scenario B, " + api + " Returns a " + postResponse.getStatus()
-					+ " status code on push notification succes at "
-					+ Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString());
-		}
-		client.close();
+	}
 
+	public void close() throws IOException {
+		scenarioALogWriter.close();
+		scenarioBLogWriter.close();
 	}
 
 	@SuppressWarnings("deprecation")
@@ -311,7 +321,7 @@ public class TRECScenarioRunnable extends TimerTask {
 							LOG.info(searcher.explain(titleExpansionQuery, docId).toString());
 							LOG.info(
 									"Multiplied by " + coordHMap.get(docId) + " Final score " + finalHits.get(j).score);
-							LOG.info("Raw text" + d.get(TRECIndexerRunnable.StatusField.RAW_TEXT.name) + " "
+							LOG.info("Raw text " + d.get(TRECIndexerRunnable.StatusField.RAW_TEXT.name) + " "
 									+ thisInterestProfile.queryTokenCount);
 
 							tweetList.add(d.get(TRECIndexerRunnable.StatusField.ID.name));
