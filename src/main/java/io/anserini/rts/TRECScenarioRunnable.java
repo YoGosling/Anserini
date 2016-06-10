@@ -87,7 +87,6 @@ public class TRECScenarioRunnable extends TimerTask {
 	boolean shutDown = false; // if Scenario=A and reached daily limit, will set
 								// shutDown=true, and the thread
 								// will sleep for the rest of the day
-	private final Client client = ClientBuilder.newClient();
 	private long interval;
 	private InterestProfile thisInterestProfile;
 
@@ -159,15 +158,18 @@ public class TRECScenarioRunnable extends TimerTask {
 	 */
 	public void postTweetListScenarioA(ArrayList<String> tweetList, String api) {
 		for (String tweetid : tweetList) {
+			Client client = ClientBuilder.newClient();
 			WebTarget webTarget = client.target(api.replace(":tweetid", tweetid));
 			Response postResponse = webTarget.request(MediaType.APPLICATION_JSON)
 					.post(Entity.entity(new String(""), MediaType.APPLICATION_JSON));
-			LOG.info("Registrer status " + postResponse.getStatus());
+			LOG.info("Post status " + postResponse.getStatus());
 
 			if (postResponse.getStatus() == 204 || postResponse.getStatus() == 429) {
 				LOG.info("Scenario A, " + api.replace(":tweetid", tweetid) + " Returns a " + postResponse.getStatus()
-						+ " status code on push notification succes at "+Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString());
+						+ " status code on push notification succes at "
+						+ Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString());
 			}
+			client.close();
 
 		}
 
@@ -177,6 +179,7 @@ public class TRECScenarioRunnable extends TimerTask {
 	 * Scenario B, post search result to broker: POST /tweets/:topid/:clientid
 	 */
 	public void postTweetListScenarioB(ArrayList<String> tweetList, String api) {
+		Client client = ClientBuilder.newClient();
 		WebTarget webTarget = client.target(api);
 		String tweetsJSONString = "{\"tweets\":[";
 		for (String tweetid : tweetList) {
@@ -185,12 +188,14 @@ public class TRECScenarioRunnable extends TimerTask {
 		tweetsJSONString = tweetsJSONString.substring(0, tweetsJSONString.length() - 1) + "]}";
 		Response postResponse = webTarget.request(MediaType.APPLICATION_JSON)
 				.post(Entity.entity(tweetsJSONString, MediaType.APPLICATION_JSON));
-		LOG.info("Registrer status " + postResponse.getStatus());
+		LOG.info("Post status " + postResponse.getStatus());
 
 		if (postResponse.getStatus() == 204 || postResponse.getStatus() == 429) {
 			LOG.info("Scenario B, " + api + " Returns a " + postResponse.getStatus()
-					+ " status code on push notification succes at "+Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString());
+					+ " status code on push notification succes at "
+					+ Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString());
 		}
+		client.close();
 
 	}
 
@@ -328,6 +333,8 @@ public class TRECScenarioRunnable extends TimerTask {
 							postTweetListScenarioA(tweetList, api);
 						else if (scenario.equals("B"))
 							postTweetListScenarioB(tweetList, api);
+					} else {
+						LOG.info("Nothing interesting today, Gonna sleep for regular interval");
 					}
 
 				}
@@ -336,7 +343,6 @@ public class TRECScenarioRunnable extends TimerTask {
 			}
 
 			if (scenario.equals("A") && !shutDown) {
-				LOG.info("Nothing interesting today, Gonna sleep for regular interval");
 				now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
 			}

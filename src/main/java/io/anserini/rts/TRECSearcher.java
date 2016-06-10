@@ -54,7 +54,7 @@ public class TRECSearcher {
 	private static final String INDEX_OPTION = "index";
 	private static final String PORT_OPTION = "port";
 	private static final String GROUPID_OPTION = "groupid";
-	private static final String interestProfilePath = "src/main/java/io/anserini/rts/public/TREC2016Profiles/";
+	private static final String interestProfilePath = "src/main/java/io/anserini/rts/TREC2016Profiles/";
 
 	private static String api_base;
 	private static TRECTopic[] topics;
