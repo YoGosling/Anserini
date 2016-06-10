@@ -301,7 +301,7 @@ public class TRECScenarioRunnable extends TimerTask {
 						if (pushedTweets.size() < dailylimit
 								&& !pushedTweets.containsKey(d.get(TRECIndexerRunnable.StatusField.ID.name))
 								&& !isDuplicate(d.get(TRECIndexerRunnable.StatusField.TEXT.name))
-								&& finalHits.get(j).score >= thisInterestProfile.queryTokenCount * 3) {
+								&& finalHits.get(j).score >= thisInterestProfile.queryTokenCount * 2) {
 
 							LOG.info(searcher.explain(titleExpansionQuery, docId).toString());
 							LOG.info(

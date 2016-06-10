@@ -96,6 +96,7 @@ public class TRECSearcher {
 	}
 
 	/* First stage: client registers from broker and gets client id */
+	/* POST /register/system */
 	public void register() throws JsonProcessingException, IOException, JSONException {
 		WebTarget webTarget = client.target(api_base + "register/system");
 		Response postResponse = webTarget.request(MediaType.APPLICATION_JSON)
@@ -138,6 +139,7 @@ public class TRECSearcher {
 	}
 
 	/* Second stage: client gets topics from broker */
+	/* GET /topics/:clientid */
 	public void getTopic() throws JsonParseException, JsonMappingException, IOException, JSONException {
 		WebTarget webTarget = client.target(api_base + "topics/" + clientid);
 		Response postResponse = webTarget.request(MediaType.APPLICATION_JSON).get();

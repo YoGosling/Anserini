@@ -11,9 +11,12 @@ mvn clean package appassembler:assemble
 
 ```
 nohup sh target/appassembler/bin/TRECSearcer -groupid uwar -index <index_name>  -host localhost -port 3333    > nohup.out &
-
 ```
-###Example: Star Wars 
+
+`-groupid -host -port` options are the corresponding values that participants self-configured in a local broker server. Details for configuring a local broker server can be found [here](https://github.com/trecrts/trecrts-eval)
+
+
+###Relevance Scoring Example: Star Wars 
 
 Document #298: { coins } ll 2016 Niue $2 1 oz. Proof Silver Star Wars Classics Series - Han Solo | GEM Proof (Original Mint ... [link](https://t.co/6pQTdwW9Iw) 
 

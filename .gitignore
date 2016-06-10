@@ -5,3 +5,10 @@ target/
 eval/trec_eval.9.0/
 *~
 /bin/
+New Ideas
+twitter4j.properties
+tweet_index
+paper/
+src/main/java/io/anserini/rts/public/TREC2016Profiles/
+src/main/java/io/anserini/rts/SearchTweets.java
+src/main/java/io/anserini/rts/testClass.java
