@@ -7,6 +7,13 @@ YoGosling
 mvn clean package appassembler:assemble
 ```
 
+YoGosling is a branch from Anserini[https://github.com/lintool/Anserini] project. Like Anserini, To run YoGosling, you must save your Twitter API OAuth credentials in a file named `twitter4j.properties` in your current working YoGosling root directory. See this page for more information about Twitter4j configurations. The file should contain the following (replace the ********** instances with your information):
+
+	oauth.consumerKey=**********
+	oauth.consumerSecret=**********
+	oauth.accessToken=**********
+	oauth.accessTokenSecret=**********
+
 ###Index and search 
 
 ```
