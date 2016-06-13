@@ -25,7 +25,7 @@ import com.google.gson.JsonParser;
 
 public class TRECIndexerRunnable implements Runnable {
 	private static final Logger LOG = TRECSearcher.LOG;
-	public IndexWriter indexWriter = TRECSearcher.indexWriter;
+	public IndexWriter indexWriter = Indexer.indexWriter;
 
 	private static final JsonParser JSON_PARSER = new JsonParser();
 
@@ -74,7 +74,6 @@ public class TRECIndexerRunnable implements Runnable {
 				if (status.getRetweetStatusString() != null) {
 					status = Status.fromJson(status.getRetweetStatusString());
 				}
-
 				if (status == null) {
 					try {
 						JsonObject obj = (JsonObject) JSON_PARSER.parse(rawString);
@@ -113,19 +112,16 @@ public class TRECIndexerRunnable implements Runnable {
 				if (processedRawText == null) {
 					return;
 				}
-
 				String whiteSpaceTokenizedText = TRECTwokenizer.trecTokenizeText(processedRawText);
 				if (whiteSpaceTokenizedText == "") {
 					return;
 				}
-
 				Document doc = new Document();
 				doc.add(new LongField(StatusField.ID.name, status.getId(), Field.Store.YES));
 				doc.add(new LongField(StatusField.EPOCH.name, status.getEpoch(), Field.Store.YES));
 				doc.add(new TextField(StatusField.SCREEN_NAME.name, status.getScreenname(), Store.YES));
 				doc.add(new TextField(StatusField.NAME.name, status.getName(), Store.YES));
 				doc.add(new TextField(StatusField.PROFILE_IMAGE_URL.name, status.getProfileImageURL(), Store.YES));
-
 				doc.add(new Field(StatusField.TEXT.name, whiteSpaceTokenizedText, textOptions));
 				doc.add(new TextField(StatusField.RAW_TEXT.name, status.getText(), Store.YES));
 				long retweetStatusId = status.getRetweetedStatusId();
@@ -135,9 +131,7 @@ public class TRECIndexerRunnable implements Runnable {
 						System.err.println("Error parsing retweet fields of " + status.getId());
 					}
 				}
-
 				try {
-
 					indexWriter.addDocument(doc);
 					indexWriter.commit();
 					tweetCount++;
@@ -148,7 +142,6 @@ public class TRECIndexerRunnable implements Runnable {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-
 			}
 
 			@Override
@@ -157,9 +150,7 @@ public class TRECIndexerRunnable implements Runnable {
 				e.printStackTrace();
 			}
 		};
-
 		twitterStream.addListener(rawListener);
 		twitterStream.sample();
-
 	}
 }

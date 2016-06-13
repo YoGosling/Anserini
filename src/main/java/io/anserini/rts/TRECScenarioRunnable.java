@@ -218,7 +218,7 @@ public class TRECScenarioRunnable extends TimerTask {
 			if ((scenario.equals("A") && Calendar.getInstance(TimeZone.getTimeZone("UTC"))
 					.get(Calendar.DAY_OF_YEAR) != now.get(Calendar.DAY_OF_YEAR)) || (scenario.equals("B")))
 				pushedTweets.clear();
-			Query titleQuery = new QueryParser(TRECIndexerRunnable.StatusField.TEXT.name, TRECSearcher.ANALYZER)
+			Query titleQuery = new QueryParser(TRECIndexerRunnable.StatusField.TEXT.name, Indexer.ANALYZER)
 					.parse(thisInterestProfile.titleQueryString());
 			LOG.info("Parsed titleQuery " + titleQuery.getClass() + " looks like " + titleQuery.toString() + " "
 					+ titleQuery.getClass());
@@ -252,7 +252,7 @@ public class TRECScenarioRunnable extends TimerTask {
 				LOG.info("Title coordinate similarity has " + totalHitCollector.getTotalHits() + "hits");
 
 				Query titleExpansionQuery = new QueryParser(TRECIndexerRunnable.StatusField.TEXT.name,
-						TRECSearcher.ANALYZER).parse(
+						Indexer.ANALYZER).parse(
 								thisInterestProfile.titleExpansionQueryString(titleBoostFactor, expansionBoostFactor));
 
 				BooleanQuery finalQuery = new BooleanQuery();

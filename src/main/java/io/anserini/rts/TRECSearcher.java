@@ -4,20 +4,11 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.StringReader;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
-
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -27,26 +18,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.MMapDirectory;
-
-import twitter4j.JSONArray;
-import twitter4j.JSONException;
-import twitter4j.JSONObject;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 
 public class TRECSearcher {
 	public static final Logger LOG = LogManager.getLogger(TRECSearcher.class);
@@ -61,129 +32,15 @@ public class TRECSearcher {
 	static BufferedWriter scenarioBLogWriter;
 
 	private static String api_base;
-	private static TRECTopic[] topics;
-
-	private static final Client client = ClientBuilder.newClient();
 	private static String clientid;
 	private static String groupid;
-
-	public static Directory index;
-	public static IndexWriter indexWriter;
-	public static String indexName;
-	public static TRECIndexerRunnable its;
-	public static final Analyzer ANALYZER = new WhitespaceAnalyzer();
+	private static String indexName;
 
 	private static long minuteInterval = 60 * 1000;
 	private static long dailyInterval = 24 * 60 * 60 * 1000;
 
-	public TRECSearcher(String dir) throws IOException {
-		FileUtils.deleteDirectory(new File(dir));
-		index = new MMapDirectory(Paths.get(dir));
-		indexName = dir;
-		IndexWriterConfig config = new IndexWriterConfig(ANALYZER);
-		indexWriter = new IndexWriter(index, config);
-	}
-
 	public void close() throws IOException {
-		indexWriter.close();
-	}
-
-	class ConnectBrokerAPIException extends Exception {
-		/**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
-
-		public ConnectBrokerAPIException(String msg) {
-			super(msg);
-		}
-	}
-
-	/* First stage: client registers from broker and gets client id */
-	/* POST /register/system */
-	public void register() throws JsonProcessingException, IOException, JSONException {
-		WebTarget webTarget = client.target(api_base + "register/system");
-		Response postResponse = webTarget.request(MediaType.APPLICATION_JSON)
-				.post(Entity.entity(new String("{\"groupid\":\"" + groupid + "\",\"alias\":\"system alias\"}"),
-						MediaType.APPLICATION_JSON));
-		LOG.info("Register status " + postResponse.getStatus());
-		if (postResponse.getStatus() == 200) {
-			String jsonString = postResponse.readEntity(String.class);
-			JsonNode rootNode = new ObjectMapper().readTree(new StringReader(jsonString));
-			clientid = rootNode.get("clientid").asText();
-			LOG.info("Register success with clientid " + clientid);
-		} else
-			try {
-				throw new ConnectBrokerAPIException(postResponse.getStatus() + postResponse.getStatusInfo().toString()
-						+ "\nRegister failed with the groupid " + groupid);
-			} catch (ConnectBrokerAPIException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-	}
-
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	static public class TRECTopic {
-		@JsonProperty("topid")
-		public String topid;
-		@JsonProperty("title")
-		public String title;
-		@JsonProperty("body")
-		public String body;
-
-		@JsonCreator
-		public TRECTopic(@JsonProperty("topid") String topicID, @JsonProperty("title") String title,
-				@JsonProperty("body") String body) {
-			super();
-			this.topid = topicID;
-			this.title = title;
-			this.body = body;
-		}
-	}
-
-	/* Second stage: client gets topics from broker */
-	/* GET /topics/:clientid */
-	public void getTopic() throws JsonParseException, JsonMappingException, IOException, JSONException {
-		WebTarget webTarget = client.target(api_base + "topics/" + clientid);
-		Response postResponse = webTarget.request(MediaType.APPLICATION_JSON).get();
-
-		if (postResponse.getStatus() == 200) {
-			LOG.info("Get topics success");
-			String jsonString = postResponse.readEntity(String.class);
-			ObjectMapper mapper = new ObjectMapper();
-			topics = mapper.readValue(jsonString, TypeFactory.defaultInstance().constructArrayType(TRECTopic.class));
-
-			File file = new File(interestProfilePath);
-			boolean isDirectoryCreated = file.mkdir();
-			if (isDirectoryCreated) {
-				LOG.info("Interest profile directory successfully made");
-			} else {
-				FileUtils.deleteDirectory(file);
-				file.mkdir();
-				LOG.info("Interest profile directory successfully covered");
-			}
-			for (int i = 0; i < topics.length; i++) {
-
-				JSONObject obj = new JSONObject();
-				obj.put("index", topics[i].topid);
-				obj.put("query", topics[i].title);
-				obj.put("expansion", new JSONArray());
-
-				try (FileWriter topicFile = new FileWriter(interestProfilePath + topics[i].topid + ".json")) {
-					topicFile.write(obj.toString());
-					LOG.info("Successfully wrote interest profile " + topics[i].topid + " to disk.");
-				}
-			}
-		} else
-			try {
-				throw new ConnectBrokerAPIException(
-						postResponse.getStatus() + postResponse.getStatusInfo().toString() + "\nGet topics failed.");
-			} catch (ConnectBrokerAPIException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
+		Indexer.close();
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -213,14 +70,11 @@ public class TRECSearcher {
 		groupid = cmdline.getOptionValue(GROUPID_OPTION);
 		int port = Integer.parseInt(cmdline.getOptionValue(PORT_OPTION));
 		api_base = new String("http://" + host + ":" + port + "/");
-		TRECSearcher rtsSearch = new TRECSearcher(cmdline.getOptionValue(INDEX_OPTION));
-		rtsSearch.register();
-		rtsSearch.getTopic();
-
-		its = new TRECIndexerRunnable(indexWriter);
-		Thread itsThread = new Thread(its);
-		itsThread.start();
-
+		
+		clientid = Register.register(api_base, groupid);
+		TRECTopic[] topics = InitialTopics.getTopics(api_base, clientid, interestProfilePath);
+		indexName = Indexer.StartIndexing(INDEX_OPTION);
+		
 		Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 		ArrayList<TimerTask> threadList = new ArrayList<TimerTask>();
 		ArrayList<Timer> timerList = new ArrayList<Timer>();
@@ -233,7 +87,7 @@ public class TRECSearcher {
 		tomorrow.set(Calendar.AM_PM, Calendar.AM);
 		tomorrow.set(Calendar.DAY_OF_YEAR, now.get(Calendar.DAY_OF_YEAR) + 1);
 		tomorrow.setTimeZone(TimeZone.getTimeZone("UTC"));
-		
+
 		File file = new File(scenarioLogPath);
 		boolean isDirectoryCreated = file.mkdir();
 		if (isDirectoryCreated) {
@@ -245,7 +99,6 @@ public class TRECSearcher {
 		}
 		scenarioALogWriter = new BufferedWriter(new FileWriter(new File(scenarioLogPath + "/scenarioALog")));
 		scenarioBLogWriter = new BufferedWriter(new FileWriter(new File(scenarioLogPath + "/scenarioBLog")));
-
 
 		for (TRECTopic topic : topics) {
 			Timer timer = new Timer();
@@ -277,6 +130,6 @@ public class TRECSearcher {
 			timerList.add(timer);
 		}
 
-		itsThread.join();
+		Indexer.join();
 	}
 }
