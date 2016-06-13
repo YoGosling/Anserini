@@ -101,9 +101,9 @@ public class TRECScenarioRunnable extends TimerTask {
 		LOG.info(api);
 		this.scenario = scenario;
 		if (scenario.equals("A"))
-			interval = 60000;
+			interval = TRECSearcher.minuteInterval;
 		else if (scenario.equals("B"))
-			interval = 24 * 3600000;
+			interval = TRECSearcher.dailyInterval;
 
 		String JSONObjectString = "";
 		try (BufferedReader br = new BufferedReader(new FileReader(interestProfilePath))) {
@@ -117,7 +117,6 @@ public class TRECScenarioRunnable extends TimerTask {
 		JsonObject interestProfileObject = (JsonObject) JSON_PARSER.parse(JSONObjectString);
 		thisInterestProfile = new InterestProfile(interestProfileObject.get("index").getAsString(),
 				interestProfileObject.get("query").getAsString(), interestProfileObject.getAsJsonArray("expansion"));
-		// LOG.info("Set up TweetPusher Thread");
 
 		format = new SimpleDateFormat("E dd MMM yyyy HH:mm:ss zz");
 		format.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -212,7 +211,7 @@ public class TRECScenarioRunnable extends TimerTask {
 	@SuppressWarnings("deprecation")
 	@Override
 	public void run() {
-		LOG.info("Running TRECScenarioSearcher Thread");
+		LOG.info("Running TRECScenarioSearcher Thread for " + thisInterestProfile.topicIndex);
 		try {
 			// When the thread wakes up at a new day, clear pushed tweets
 			if ((scenario.equals("A") && Calendar.getInstance(TimeZone.getTimeZone("UTC"))
@@ -251,9 +250,8 @@ public class TRECScenarioRunnable extends TimerTask {
 
 				LOG.info("Title coordinate similarity has " + totalHitCollector.getTotalHits() + "hits");
 
-				Query titleExpansionQuery = new QueryParser(TRECIndexerRunnable.StatusField.TEXT.name,
-						Indexer.ANALYZER).parse(
-								thisInterestProfile.titleExpansionQueryString(titleBoostFactor, expansionBoostFactor));
+				Query titleExpansionQuery = new QueryParser(TRECIndexerRunnable.StatusField.TEXT.name, Indexer.ANALYZER)
+						.parse(thisInterestProfile.titleExpansionQueryString(titleBoostFactor, expansionBoostFactor));
 
 				BooleanQuery finalQuery = new BooleanQuery();
 				finalQuery.add(titleExpansionQuery, BooleanClause.Occur.MUST);
@@ -304,7 +302,7 @@ public class TRECScenarioRunnable extends TimerTask {
 					LOG.info("Hit " + finalHits.size() + " documents");
 					if (0 != finalHits.size()) {
 						LOG.info("Quering:" + titleExpansionQuery.toString() + ", Found " + finalHits.size()
-								+ " hits (including old, only push new)");
+								+ " hits");
 					}
 
 					ArrayList<String> tweetList = new ArrayList<String>();

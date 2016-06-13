@@ -11,15 +11,19 @@ public class TRECTopic {
 	public String topid;
 	@JsonProperty("title")
 	public String title;
-	@JsonProperty("body")
-	public String body;
+	@JsonProperty("description")
+	public String description;
+	@JsonProperty("narrative")
+	public String narrative;
+	
 
 	@JsonCreator
-	public TRECTopic(@JsonProperty("topid") String topicID, @JsonProperty("title") String title,
-			@JsonProperty("body") String body) {
+	public TRECTopic(@JsonProperty("topid") String topid, @JsonProperty("title") String title,
+			@JsonProperty("description") String description,@JsonProperty("narrative") String narrative) {
 		super();
-		this.topid = topicID;
+		this.topid = topid;
 		this.title = title;
-		this.body = body;
+		this.description = description;
+		this.narrative=narrative;
 	}
 }

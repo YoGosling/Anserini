@@ -15,18 +15,17 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-
-public class Register {
+public class Registrar {
 	public static final Logger LOG = LogManager.getLogger(TRECSearcher.class);
 
 	/* First stage: client registers from broker and gets client id */
 	/* POST /register/system */
-	public static String register(String api_base, String groupid) throws Exception {
+	public static String register(String api_base, String groupid, String alias) throws Exception {
 		Client client = ClientBuilder.newClient();
 		String clientid;
 		WebTarget webTarget = client.target(api_base + "register/system");
 		Response postResponse = webTarget.request(MediaType.APPLICATION_JSON)
-				.post(Entity.entity(new String("{\"groupid\":\"" + groupid + "\",\"alias\":\"system alias\"}"),
+				.post(Entity.entity(new String("{\"groupid\":\"" + groupid + "\",\"alias\":\"" + alias + "\"}"),
 						MediaType.APPLICATION_JSON));
 		LOG.info("Register status " + postResponse.getStatus());
 		if (postResponse.getStatus() == 200) {

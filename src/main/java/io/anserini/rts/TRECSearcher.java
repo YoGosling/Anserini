@@ -26,21 +26,40 @@ public class TRECSearcher {
 	private static final String INDEX_OPTION = "index";
 	private static final String PORT_OPTION = "port";
 	private static final String GROUPID_OPTION = "groupid";
-	private static final String interestProfilePath = "src/main/java/io/anserini/rts/TREC2016Profiles/";
-	private static final String scenarioLogPath = "src/main/java/io/anserini/rts/scenarioLog";
+
 	static BufferedWriter scenarioALogWriter;
 	static BufferedWriter scenarioBLogWriter;
 
-	private static String api_base;
-	private static String clientid;
-	private static String groupid;
-	private static String indexName;
+	/* Change values for the following 3, non-critical variable */
+	static final String interestProfilePath = "src/main/java/io/anserini/rts/TREC2016Profiles/";
+	private static final String scenarioLogPath = "src/main/java/io/anserini/rts/scenarioLog";
+	private static final String alias = "WaterlooBaseline";
 
-	private static long minuteInterval = 60 * 1000;
-	private static long dailyInterval = 24 * 60 * 60 * 1000;
+	static String api_base;
+	static String clientid;
+	static TRECTopic[] topics;
+
+	private static String groupid;
+	static String indexName;
+
+	private static ArrayList<TimerTask> threadList = new ArrayList<TimerTask>();
+	private static ArrayList<Timer> timerList = new ArrayList<Timer>();
+
+	static long minuteInterval = 60 * 1000;
+	static long dailyInterval = 24 * 60 * minuteInterval;
+	/*
+	 * Organizer suggests that poll the broker API for topics no more frequent than
+	 * once every hour
+	 */
+	private static long topicCheckInterval = 60 * minuteInterval;
 
 	public void close() throws IOException {
 		Indexer.close();
+	}
+
+	public static void keepTaskInList(TimerTask tasknew, Timer timer) {
+		threadList.add(tasknew);
+		timerList.add(timer);
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -70,16 +89,13 @@ public class TRECSearcher {
 		groupid = cmdline.getOptionValue(GROUPID_OPTION);
 		int port = Integer.parseInt(cmdline.getOptionValue(PORT_OPTION));
 		api_base = new String("http://" + host + ":" + port + "/");
-		
-		clientid = Register.register(api_base, groupid);
-		TRECTopic[] topics = InitialTopics.getTopics(api_base, clientid, interestProfilePath);
-		indexName = Indexer.StartIndexing(INDEX_OPTION);
-		
-		Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-		ArrayList<TimerTask> threadList = new ArrayList<TimerTask>();
-		ArrayList<Timer> timerList = new ArrayList<Timer>();
 
-		now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+		clientid = Registrar.register(api_base, groupid, alias);
+		topics = TopicPoller.getInitialTopics(api_base, clientid, interestProfilePath);
+		indexName = Indexer.StartIndexing(INDEX_OPTION);
+
+		Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+
 		Calendar tomorrow = Calendar.getInstance();
 		tomorrow.set(Calendar.HOUR, 0);
 		tomorrow.set(Calendar.MINUTE, 0);
@@ -109,16 +125,18 @@ public class TRECSearcher {
 			// At the first time, there's a 30000 milliseconds delay for the
 			// delay in connecting Twitter Streaming API
 			timer.scheduleAtFixedRate(tasknew, 30000, minuteInterval);
-			threadList.add(tasknew);
-			timerList.add(timer);
+			keepTaskInList(tasknew, timer);
+
 		}
 
 		for (TRECTopic topic : topics) {
 			Timer timer = new Timer();
 			TimerTask tasknew = new TRECScenarioRunnable(indexName, interestProfilePath + topic.topid + ".json",
 					api_base + "tweets/" + topic.topid + "/" + clientid, "B");
-			LOG.info(tomorrow.getTimeInMillis() + " " + now.getTimeInMillis());
+			LOG.info("Scenario B will start at epoch " + tomorrow.getTimeInMillis() + " Now is "
+					+ now.getTimeInMillis());
 
+			// [Deprecated!] Scenario A only for this year
 			// Schedule scenario B search task every day at 0'00'01
 			// The 1000 milliseconds delay is to ensure that the search action
 			// lies exactly at the new day, as long as 1000 milliseconds delay
@@ -126,9 +144,14 @@ public class TRECSearcher {
 			// At the first time, there's a delay to wait till a new day.
 			timer.scheduleAtFixedRate(tasknew, (long) (tomorrow.getTimeInMillis() - now.getTimeInMillis() + 1000),
 					dailyInterval);
-			threadList.add(tasknew);
-			timerList.add(timer);
+			keepTaskInList(tasknew, timer);
 		}
+
+		Timer timer = new Timer();
+		TimerTask tasknew = new NewTopicsPeriodicalRunnable();
+		LOG.info("Successfully set up the thread for periodically check new topics every" + topicCheckInterval);
+		timer.scheduleAtFixedRate(tasknew, 0, topicCheckInterval);
+		keepTaskInList(tasknew, timer);
 
 		Indexer.join();
 	}
