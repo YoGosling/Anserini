@@ -23,8 +23,6 @@ nohup sh target/appassembler/bin/TRECSearcher -groupid uwar -index <index_name> 
 `-groupid -host -port` options are the corresponding values that participants self-configured in a local broker server. Details for configuring a local broker server can be found [here](https://github.com/trecrts/trecrts-eval)
 
 
-###TODO：A thread periodically poll new topics
-
 
 ###Relevance Scoring Example: Star Wars 
 
