@@ -56,8 +56,8 @@ public class TopicPoller {
 			return topics;
 		} else
 			try {
-				throw new Exception(
-						postResponse.getStatus() + " "+postResponse.getStatusInfo().toString() + "\nGet topics failed.");
+				throw new Exception(postResponse.getStatus() + " " + postResponse.getStatusInfo().toString()
+						+ "\nGet topics failed.");
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -86,7 +86,7 @@ public class TopicPoller {
 			return topics;
 		} else
 			try {
-				throw new Exception(postResponse.getStatus() + " "+postResponse.getStatusInfo().toString()
+				throw new Exception(postResponse.getStatus() + " " + postResponse.getStatusInfo().toString()
 						+ "\nGet updated topics failed.");
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
@@ -101,10 +101,12 @@ public class TopicPoller {
 		JSONObject obj = new JSONObject();
 		obj.put("index", trecTopic.topid);
 		obj.put("query", trecTopic.title);
+		obj.put("narr", trecTopic.narrative);
+		obj.put("desc", trecTopic.description);
 
 		/*
-		 * It is at participants' discretion on how to implement query expansion
-		 * module
+		 * It is at participants' discretion on how to utilize the interest
+		 * profile and implement proper query expansion module
 		 */
 
 		obj.put("expansion", new JSONArray());
