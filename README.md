@@ -39,7 +39,7 @@ POST /tweet/:topid/:tweetid/:clientid
 
 ###Algorithm
 
-YoGosling is a modified and extended version of the best performing automatic system in TREC 2015. For algorithm details, please refer to the paper, [University of Waterloo at TREC 2015 Microblog Track](http://trec.nist.gov/pubs/trec24/papers/UWaterlooMDS-MB.pdf)
+YoGosling is a modified version of the best performing automatic system in TREC 2015. For algorithm details, please refer to the paper, [Simple Dynamic Emission Strategies for Microblog Filtering](https://cs.uwaterloo.ca/~jimmylin/publications/Tan_etal_SIGIR2016b.pdf)
 
 ####Relevance Scoring Example: Star Wars 
 
@@ -55,7 +55,7 @@ Interest Profile: Star Wars
 	
 	titleExpansionSimilarity = 6.0 (as follows)
 	
-	finalSimilarityScore = 1.0 * 6.0 = 6.0
+	finalSimilarityScore = titleCoordSimilarity * titleExpansionSimilarity = 1.0 * 6.0 = 6.0
 
 YoGosling log snippet
 
