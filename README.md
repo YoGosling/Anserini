@@ -7,7 +7,7 @@ YoGosling
 mvn clean package appassembler:assemble
 ```
 
-YoGosling is a branch from Anserini[https://github.com/lintool/Anserini] project. Like Anserini, To run YoGosling, you must save your Twitter API OAuth credentials in a file named `twitter4j.properties` in your current working YoGosling root directory. See this page for more information about Twitter4j configurations. The file should contain the following (replace the ********** instances with your information):
+YoGosling is a branch from Anserini[https://github.com/lintool/Anserini] project. Like Anserini, To run YoGosling, you must save your Twitter API OAuth credentials in a file named `twitter4j.properties` in your current working YoGosling root directory. See [this page](http://twitter4j.org/en/configuration.html) for more information about Twitter4j configurations. The file should contain the following (replace the ********** instances with your information):
 
 	oauth.consumerKey=**********
 	oauth.consumerSecret=**********
@@ -21,6 +21,22 @@ sh target/appassembler/bin/TRECSearcher -groupid uwar -index <index_name>  -host
 ```
 
 `-groupid -host -port` options are the corresponding values that participants self-configured in a local broker server. Details for configuring a local broker server can be found [here](https://github.com/trecrts/trecrts-eval)
+
+
+Following is where each [evaluation broker REST(ful) API](https://github.com/trecrts/trecrts-eval/tree/master/trecrts-server) call is implemented. 
+
+POST /register/system 
+
+[https://github.com/YoGosling/Anserini/blob/master/src/main/java/io/anserini/rts/Registrar.java#L26](https://github.com/YoGosling/Anserini/blob/master/src/main/java/io/anserini/rts/Registrar.java#L26)
+
+GET /topics/:clientid
+
+[https://github.com/YoGosling/Anserini/blob/master/src/main/java/io/anserini/rts/TopicPoller.java#L33](https://github.com/YoGosling/Anserini/blob/master/src/main/java/io/anserini/rts/TopicPoller.java#L33)
+
+POST /tweet/:topid/:tweetid/:clientid
+
+[https://github.com/YoGosling/Anserini/blob/master/src/main/java/io/anserini/rts/TRECScenarioRunnable.java#L168](https://github.com/YoGosling/Anserini/blob/master/src/main/java/io/anserini/rts/TRECScenarioRunnable.java#L168)
+
 
 ###Algorithm
 
