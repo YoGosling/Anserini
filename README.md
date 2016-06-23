@@ -1,7 +1,7 @@
 YoGosling
 ========
 
-###Build using Maven
+###Build with Maven
 
 ```
 mvn clean package appassembler:assemble
@@ -17,14 +17,16 @@ YoGosling is a branch from Anserini[https://github.com/lintool/Anserini] project
 ###Index and search 
 
 ```
-nohup sh target/appassembler/bin/TRECSearcher -groupid uwar -index <index_name>  -host localhost -port 3333    > nohup.out &
+sh target/appassembler/bin/TRECSearcher -groupid uwar -index <index_name>  -host localhost -port 3333 
 ```
 
 `-groupid -host -port` options are the corresponding values that participants self-configured in a local broker server. Details for configuring a local broker server can be found [here](https://github.com/trecrts/trecrts-eval)
 
+###Algorithm
 
+YoGosling is a modified and extended version of the best performing automatic system in TREC 2015. For algorithm details, please refer to the paper, [University of Waterloo at TREC 2015 Microblog Track](http://trec.nist.gov/pubs/trec24/papers/UWaterlooMDS-MB.pdf)
 
-###Relevance Scoring Example: Star Wars 
+####Relevance Scoring Example: Star Wars 
 
 Document #298: { coins } ll 2016 Niue $2 1 oz. Proof Silver Star Wars Classics Series - Han Solo | GEM Proof (Original Mint ... [link](https://t.co/6pQTdwW9Iw) 
 
