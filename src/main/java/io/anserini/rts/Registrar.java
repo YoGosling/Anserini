@@ -36,7 +36,7 @@ public class Registrar {
 			return clientid;
 		} else
 			try {
-				throw new Exception(postResponse.getStatus() + postResponse.getStatusInfo().toString()
+				throw new Exception(postResponse.getStatus() + " "+postResponse.getStatusInfo().toString()
 						+ "\nRegister failed with the groupid " + groupid);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block

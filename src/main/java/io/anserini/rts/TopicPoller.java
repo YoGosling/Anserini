@@ -57,7 +57,7 @@ public class TopicPoller {
 		} else
 			try {
 				throw new Exception(
-						postResponse.getStatus() + postResponse.getStatusInfo().toString() + "\nGet topics failed.");
+						postResponse.getStatus() + " "+postResponse.getStatusInfo().toString() + "\nGet topics failed.");
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -86,7 +86,7 @@ public class TopicPoller {
 			return topics;
 		} else
 			try {
-				throw new Exception(postResponse.getStatus() + postResponse.getStatusInfo().toString()
+				throw new Exception(postResponse.getStatus() + " "+postResponse.getStatusInfo().toString()
 						+ "\nGet updated topics failed.");
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
