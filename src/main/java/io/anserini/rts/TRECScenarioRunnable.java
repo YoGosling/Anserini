@@ -13,9 +13,11 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.TimerTask;
 
@@ -170,7 +172,7 @@ public class TRECScenarioRunnable extends TimerTask {
 
 			if (postResponse.getStatus() == 204 || postResponse.getStatus() == 429) {
 				LOG.info("Scenario A, " + api.replace(":tweetid", tweetid) + " Returns a " + postResponse.getStatus()
-						+ " status code on push notification succes at "
+						+ " status code on push notification success at "
 						+ Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString());
 				scenarioALogWriter.write(
 						"Scenario A	" + Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString()
@@ -186,17 +188,26 @@ public class TRECScenarioRunnable extends TimerTask {
 	}
 
 	/*
-	 * Scenario B, post search result to broker deprecated: POST API
-	 * /tweets/:topid/:clientid deleted, write to files instead
+	 * Scenario B, formatted as a plain text file, where each line has the
+	 * following fields: YYYYMMDD topic_id Q0 tweet_id rank score runtag
 	 */
 	@SuppressWarnings("deprecation")
-	public void postTweetListScenarioB(ArrayList<String> tweetList, String api) throws IOException {
+	public void postTweetListScenarioB(ArrayList<String> tweetList, String api,HashMap<String, Float> scoreMap) throws IOException {
 
-		for (String tweetid : tweetList) {
-			scenarioBLogWriter
-					.write("Scenario B	" + Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime().toGMTString()
-							+ "	" + Calendar.getInstance().getTimeInMillis() + "	" + thisInterestProfile.topicIndex
-							+ "	" + tweetid);
+		SimpleDateFormat sdf = new SimpleDateFormat();
+		sdf.setTimeZone(new SimpleTimeZone(0, "GMT"));
+		sdf.applyPattern("yyyyMMdd");
+		
+		
+		Calendar yesterday = Calendar.getInstance();
+		yesterday.set(Calendar.DAY_OF_YEAR, yesterday.get(Calendar.DAY_OF_YEAR) - 1);
+		yesterday.setTimeZone(TimeZone.getTimeZone("UTC"));
+		Date testDate = yesterday.getTime();
+		
+		for (int i=0;i<tweetList.size();i++ ) {
+
+			scenarioBLogWriter.write(sdf.format(testDate) + " "
+					+ thisInterestProfile.topicIndex + " Q0 " + tweetList.get(i)+" "+(i+1)+" "+scoreMap.get(tweetList.get(i))+" "+TRECSearcher.alias);
 			scenarioBLogWriter.newLine();
 			scenarioBLogWriter.flush();
 		}
@@ -248,7 +259,7 @@ public class TRECScenarioRunnable extends TimerTask {
 					coordHMap.put(s.doc, s.score);
 				}
 
-				LOG.info("Title coordinate similarity has " + totalHitCollector.getTotalHits() + "hits");
+				LOG.info("Title coordinate similarity has " + totalHitCollector.getTotalHits() + " hits");
 
 				Query titleExpansionQuery = new QueryParser(TRECIndexerRunnable.StatusField.TEXT.name, Indexer.ANALYZER)
 						.parse(thisInterestProfile.titleExpansionQueryString(titleBoostFactor, expansionBoostFactor));
@@ -301,11 +312,11 @@ public class TRECScenarioRunnable extends TimerTask {
 
 					LOG.info("Hit " + finalHits.size() + " documents");
 					if (0 != finalHits.size()) {
-						LOG.info("Quering:" + titleExpansionQuery.toString() + ", Found " + finalHits.size()
-								+ " hits");
+						LOG.info("Quering:" + titleExpansionQuery.toString() + ", Found " + finalHits.size() + " hits");
 					}
 
 					ArrayList<String> tweetList = new ArrayList<String>();
+					HashMap<String, Float> scoreMap = new HashMap<String, Float>();
 
 					for (int j = 0; j < finalHits.size(); ++j) {
 						int docId = finalHits.get(j).doc;
@@ -323,6 +334,7 @@ public class TRECScenarioRunnable extends TimerTask {
 									+ thisInterestProfile.queryTokenCount);
 
 							tweetList.add(d.get(TRECIndexerRunnable.StatusField.ID.name));
+							scoreMap.put(d.get(TRECIndexerRunnable.StatusField.ID.name), finalHits.get(j).score);
 
 							LOG.info("Tweet ID:" + String.valueOf(d.get(TRECIndexerRunnable.StatusField.ID.name)));
 
@@ -340,7 +352,7 @@ public class TRECScenarioRunnable extends TimerTask {
 						if (scenario.equals("A"))
 							postTweetListScenarioA(tweetList, api);
 						else if (scenario.equals("B"))
-							postTweetListScenarioB(tweetList, api);
+							postTweetListScenarioB(tweetList, api, scoreMap);
 					} else {
 						LOG.info("Nothing interesting today, Gonna sleep for regular interval");
 					}

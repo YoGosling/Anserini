@@ -33,7 +33,7 @@ public class TRECSearcher {
 	/* Change values for the following 3, non-critical variable */
 	static final String interestProfilePath = "src/main/java/io/anserini/rts/TREC2016Profiles/";
 	private static final String scenarioLogPath = "src/main/java/io/anserini/rts/scenarioLog";
-	private static final String alias = "WaterlooBaseline";
+	static final String alias = "WaterlooBaseline";
 
 	static String api_base;
 	static String clientid;
@@ -48,8 +48,8 @@ public class TRECSearcher {
 	static long minuteInterval = 60 * 1000;
 	static long dailyInterval = 24 * 60 * minuteInterval;
 	/*
-	 * Organizer suggests that poll the broker API for topics no more frequent than
-	 * once every hour
+	 * Organizer suggests that poll the broker API for topics no more frequent
+	 * than once every hour
 	 */
 	private static long topicCheckInterval = 60 * minuteInterval;
 
