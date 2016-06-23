@@ -17,10 +17,10 @@ YoGosling is a branch from Anserini[https://github.com/lintool/Anserini] project
 ###Index and search 
 
 ```
-sh target/appassembler/bin/TRECSearcher -groupid uwar -index <index_name>  -host localhost -port 3333 
+sh target/appassembler/bin/TRECSearcher -groupid <groupid> -index <index_name>  -host <host> -port <port> 
 ```
 
-`-groupid -host -port` options are the corresponding values that participants self-configured in a local broker server. Details for configuring a local broker server can be found [here](https://github.com/trecrts/trecrts-eval)
+`-host, -port` options are the url and port of the open RTS valuation broker. `-groupid` option is the groupid obtained from RTS orgnizers. Details for getting groupids and conneting to RTS broker can be found at one of the discussions in the [mailing list](https://groups.google.com/forum/#!topic/trec-rts/aGbZNFhibcg). 
 
 
 ###Connect [evaluation broker REST(ful) API](https://github.com/trecrts/trecrts-eval/tree/master/trecrts-server) 
