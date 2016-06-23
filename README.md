@@ -23,8 +23,7 @@ sh target/appassembler/bin/TRECSearcher -groupid uwar -index <index_name>  -host
 `-groupid -host -port` options are the corresponding values that participants self-configured in a local broker server. Details for configuring a local broker server can be found [here](https://github.com/trecrts/trecrts-eval)
 
 
-Following is where each [evaluation broker REST(ful) API](https://github.com/trecrts/trecrts-eval/tree/master/trecrts-server) call is implemented. 
-
+###Connect [evaluation broker REST(ful) API](https://github.com/trecrts/trecrts-eval/tree/master/trecrts-server) 
 POST /register/system 
 
 [https://github.com/YoGosling/Anserini/blob/master/src/main/java/io/anserini/rts/Registrar.java#L26](https://github.com/YoGosling/Anserini/blob/master/src/main/java/io/anserini/rts/Registrar.java#L26)
