@@ -36,6 +36,23 @@ POST /tweet/:topid/:tweetid/:clientid
 
 [https://github.com/YoGosling/Anserini/blob/master/src/main/java/io/anserini/rts/TRECScenarioRunnable.java#L168](https://github.com/YoGosling/Anserini/blob/master/src/main/java/io/anserini/rts/TRECScenarioRunnable.java#L168)
 
+To get rid of the whelming log info, there is a separate log to check whether YoGosling did the right thing: push seemingly "relevant" tweets! Under the root directory, 
+
+
+	cd src/main/java/io/anserini/rts/scenarioLog
+	vi scenarioALog 
+
+Where you will probably see something like this,
+
+	Scenario A      24 Jun 2016 14:36:35 GMT        1466778995738   MB256   746351277148372992
+	Scenario A      24 Jun 2016 14:38:35 GMT        1466779115319   MB415   746351738509271040
+	Scenario A      24 Jun 2016 14:39:40 GMT        1466779180099   MB415   746352040503349249
+
+Also for scenario B,
+
+	cd src/main/java/io/anserini/rts/scenarioLog
+	vi scenarioBLog 
+
 
 ###Algorithm
 
