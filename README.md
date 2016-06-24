@@ -1,3 +1,9 @@
+```
+Note: To run YoGosling, you will need the twitter4j.properties, Java, Maven installed.
+If you get into any problem or find any bug, please send an email to xeniaqian94@gmail.com
+with a snippet of log where exception/error comes from, so that we can help/fix. :D
+```
+
 YoGosling
 ========
 
