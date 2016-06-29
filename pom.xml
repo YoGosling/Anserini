@@ -21,6 +21,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.3.2</version>
 				<configuration>
 					<source>1.7</source>
 					<target>1.7</target>
@@ -268,11 +269,6 @@
 			<version>${JERSEY_VERSION}</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.glassfish.jersey.media</groupId>
-			<artifactId>jersey-media-jaxb</artifactId>
-			<version>2.22.1</version>
-		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-jaxb</artifactId>
