@@ -114,6 +114,7 @@ public class TopicPoller {
 		try (FileWriter topicFile = new FileWriter(TRECSearcher.interestProfilePath + trecTopic.topid + ".json")) {
 			topicFile.write(obj.toString());
 			LOG.info("Successfully wrote interest profile " + trecTopic.topid + " to disk.");
+			topicFile.close();
 		}
 
 	}

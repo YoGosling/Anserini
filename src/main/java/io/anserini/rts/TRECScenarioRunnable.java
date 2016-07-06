@@ -115,6 +115,7 @@ public class TRECScenarioRunnable extends TimerTask {
 				JSONObjectString = JSONObjectString + line;
 				line = br.readLine();
 			}
+			br.close();
 		}
 		JsonObject interestProfileObject = (JsonObject) JSON_PARSER.parse(JSONObjectString);
 		thisInterestProfile = new InterestProfile(interestProfileObject.get("index").getAsString(),
